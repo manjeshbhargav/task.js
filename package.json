@@ -1,0 +1,36 @@
+{
+  "name": "task.js",
+  "version": "1.0.0",
+  "description": "JS library for constructing async tasks.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf dist",
+    "build": "gulp"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/manjeshbhargav/task.js.git"
+  },
+  "keywords": [
+    "async",
+    "task"
+  ],
+  "author": "Manjesh Malavalli",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/manjeshbhargav/task.js/issues"
+  },
+  "homepage": "https://github.com/manjeshbhargav/task.js#readme",
+  "devDependencies": {
+    "browserify": "^13.1.0",
+    "gulp": "^3.9.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^2.0.0",
+    "mocha": "^3.0.2",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
