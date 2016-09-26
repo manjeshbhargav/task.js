@@ -7,7 +7,7 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 
 gulp.task('build', function() {
-  return browserify('./index.js')
+  return browserify('./browser.js')
     .bundle()
     .pipe(source('task.js'))
     .pipe(gulp.dest('./dist'));
