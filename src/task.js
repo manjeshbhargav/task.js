@@ -1,12 +1,6 @@
 'use strict';
 
-var isArrayOf = function isArrayOf(array, ItemType) {
-  return (
-    typeof array === 'object' &&
-    array.hasOwnProperty('length') &&
-    array.every(function(item) { return (item instanceof ItemType); })
-  );
-};
+var type = require('./type');
 
 /**
  * Create a new {@link Task}
@@ -14,18 +8,19 @@ var isArrayOf = function isArrayOf(array, ItemType) {
  * @classdesc A {@link Task} represents a set of instructions
  *   that can be grouped based on application specific logic.
  * @example
- * var loginTask = new Task('login', function(url, done, failed) {
- *    $.put({
+ * var loginAttempt = new Task('login attempt', function(url, done, failed) {
+ *    $.post({
  *      url: url,
  *      data: { uname: '123', password: 'xyz' },
  *      success: function(response) { done(JSON.parse(response)); },
  *      failure: function(error) { failed(error); }
  *    });
  * });
- * loginTask.do('/login').then(function(response) {
+ *
+ * loginAttempt.do('/login').then(function(response) {
  *    console.log('Success - ', response);
  * }.catch(function(error) {
- *    console.log('Failure - ', error);
+ *    console.error('Failure - ', error);
  * });
  * @param {String} name - Human readable name for the task.
  * @param {Function} template - Function which has the instructions.
@@ -44,17 +39,32 @@ function Task(name, template) {
 }
 
 /**
- * Helper for creating a new {@link Task}.
+ * Helper for creating a new {@link Task} with type checks for arguments.
+ * @example
+ * var getExecRecords = Task.create('get executive records', function(url, done, failed) {
+ *    $.getJSON(url, function(employees) {
+ *      var executives = employees.filter(function(employee) {
+ *        return (employee.title === 'executive');
+ *      });
+ *      done(executives);
+ *    }, failed);
+ * });
+ *
+ * getExecRecords.do('/records/employees').then(function(executives) {
+ *    console.log('Executive records - ', executives);
+ * }).catch(function(error) {
+ *    console.error('Error - ', error);
+ * });
  * @memberof Task
  * @param {String} name - Human readable name for the task.
  * @param {Function} template - Function which has the instructions.
  * @returns {Task}
  */
 Task.create = function create(name, template) {
-  if (typeof name !== 'string') {
+  if (!type(name).is('string')) {
     throw(new Error('name must be a string'));
   }
-  if (typeof template !== 'function') {
+  if (!type(template).is('function')) {
     throw(new Error('template must be a function'));
   }
   return new Task(name, template);
@@ -63,9 +73,17 @@ Task.create = function create(name, template) {
 /**
  * Perform an anonymous {@link Task}.
  * @example
- * Task.do(function(done, failed) {
- *    // Task instructions here
- *    // Call done() or failed() when task completed or failed.
+ * Task.do(function(url, data, done, failed) {
+ *    $.post({
+ *      url: url,
+ *      data: data,
+ *      success: done,
+ *      failure: failed
+ *    });
+ * }, '/report/actiontaken', { type: 'clicked' }).then(function() {
+ *    console.log('Report successfully sent.');
+ * }).catch(functiom(error) {
+ *    console.error('Attempt to send report failed - ', error);
  * });
  * @memberof Task
  * @param {Function} template - Function which has the instructions.
@@ -73,7 +91,7 @@ Task.create = function create(name, template) {
  * @returns {Promise.<*>}
  */
 Task.do = function doTask(template) {
-  if (typeof template !== 'function') {
+  if (!type(template).is('function')) {
     throw(new Error('template must be a function'));
   }
 
@@ -92,7 +110,7 @@ Task.do = function doTask(template) {
  * Task.sequence([task1, task2, task3]).then(function(task3Result) {
  *    console.log('All done one after the other!');
  * }).catch(function(error) {
- *    console.log('One of the tasks failed');
+ *    console.error('One of the tasks failed - ', error);
  * });
  * @memberof Task
  * @param {Task[]} tasks - Tasks to be performed in sequence.
@@ -100,7 +118,7 @@ Task.do = function doTask(template) {
  * @returns {Promise.<*>}
  */
 Task.sequence = function sequence(tasks) {
-  if (!isArrayOf(tasks, Task)) {
+  if (!type(tasks).isArrayOf(Task)) {
     throw(new Error('Argument should be an array of tasks.'));
   }
 
@@ -118,12 +136,26 @@ Task.sequence = function sequence(tasks) {
 
 /**
  * Perform {@link Task}s in parallel.
+ * @example
+ * var task1 = Task.create('task1', function(arg1, done, failed) {...});
+ * var task2 = Task.create('task2', function(arg21, arg22, done, failed) {...});
+ * var task3 = Task.create('task3',, function(done, failed) {...});
+ *
+ * Task.parallel([
+ *    task1.do(1),
+ *    task2.do(true, 'foo'),
+ *    task3.do()
+ * ]).then(function(results) {
+ *    console.log('Results of all completed tasks - ', results);
+ * }).catch(function(error) {
+ *    console.error('One of the tasks failed - ', error);
+ * });
  * @memberof Task
  * @param {Promise[]} taskPromises - Promises returned by each {@link Task}'s <code>do()</code> method.
  * @returns {Promise.<*>}
  */
 Task.parallel = function parallel(taskPromises) {
-  if (!isArrayOf(taskPromises, Promise)) {
+  if (!type(taskPromises).isArrayOf(Promise)) {
     throw(new Error('Argument should be an array of task promises.'));
   }
   return Promise.all(taskPromises);
@@ -144,10 +176,10 @@ Task.parallel = function parallel(taskPromises) {
  * @returns {Promise.<*>}
  */
 Task.try = function tryTask(task, tries) {
-  if (!(task instanceof Task)) {
+  if (!type(task).isInstanceOf(Task)) {
     throw(new Error('First argument should be a task.'));
   }
-  if (typeof tries !== 'number') {
+  if (!type(tries).is('number')) {
     throw(new Error('Second argument should be the number of tries.'));
   }
 
@@ -168,6 +200,14 @@ Task.try = function tryTask(task, tries) {
 
 /**
  * Perform a {@link Task}.
+ * @example
+ * var task = Task.create('task name', function(a, b, done, failed) {...});
+ *
+ * task.do({ foo: 'bar' }, true).then(function(result) {
+ *    console.log('Task done - ', result);
+ * }).catch(function(error) {
+ *    console.error('Task failed - ', error);
+ * });
  * @param {...*} arguments - Arguments for the task template.
  * @returns {Promise.<*>}
  */

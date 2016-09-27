@@ -1,13 +1,14 @@
 'use strict';
 
 var assert = require('assert');
+var type = require('../../src/type');
 var Task = require('../../src/task');
 
 describe('Task', () => {
   describe('#constructor', () => {
     it('should return a Task', () => {
       var task = new Task('name', () => {});
-      assert(task instanceof Task);
+      assert(type(task).isInstanceOf(Task));
     });
 
     it('should set the name and template', () => {
@@ -22,7 +23,7 @@ describe('Task', () => {
   describe('#do', () => {
     it('should return a promise', () => {
       var task = new Task('name', () => {});
-      assert(task.do() instanceof Promise);
+      assert(type(task.do()).isInstanceOf(Promise));
     });
 
     it('should reject the promise if the template throws', () => {
@@ -35,17 +36,13 @@ describe('Task', () => {
     });
 
     it('should resolve the promise if done() is called', () => {
-      var task = new Task('name', done => {
-        done();
-      });
+      var task = new Task('name', done => done());
       return task.do();
     });
 
     it('should reject the promise if failed() is called', () => {
       return new Promise((resolve, reject) => {
-        var task = new Task('name', (done, failed) => {
-          failed();
-        });
+        var task = new Task('name', (done, failed) => failed());
         task.do().then(reject).catch(resolve);
       });
     });
@@ -61,7 +58,7 @@ describe('Task', () => {
     });
 
     it('should return a Task', () => {
-      assert(Task.create('name', () => {}) instanceof Task);
+      assert(type(Task.create('name', () => {})).isInstanceOf(Task));
     });
   });
 
@@ -71,7 +68,7 @@ describe('Task', () => {
     });
 
     it('should return a promise', () => {
-      assert(Task.do(() => {}) instanceof Promise);
+      assert(type(Task.do(() => {})).isInstanceOf(Promise));
     });
 
     it('should resolve the promise if done() is called', () => {
