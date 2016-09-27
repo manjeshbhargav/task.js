@@ -45,7 +45,7 @@ function Task(name, template) {
 
 /**
  * Helper for creating a new {@link Task}.
- * @memberOf Task
+ * @memberof Task
  * @param {String} name - Human readable name for the task.
  * @param {Function} template - Function which has the instructions.
  * @returns {Task}
@@ -67,7 +67,7 @@ Task.create = function create(name, template) {
  *    // Task instructions here
  *    // Call done() or failed() when task completed or failed.
  * });
- * @memberOf Task
+ * @memberof Task
  * @param {Function} template - Function which has the instructions.
  * @param {...*} arguments - Arguments for running the template.
  * @returns {Promise.<*>}
@@ -94,8 +94,8 @@ Task.do = function doTask(template) {
  * }).catch(function(error) {
  *    console.log('One of the tasks failed');
  * });
- * @memberOf Task
- * @param {Array[Task]} tasks - Tasks to be performed in sequence.
+ * @memberof Task
+ * @param {Task[]} tasks - Tasks to be performed in sequence.
  * @param {...*} arguments - Arguments for the first task.
  * @returns {Promise.<*>}
  */
@@ -118,8 +118,8 @@ Task.sequence = function sequence(tasks) {
 
 /**
  * Perform {@link Task}s in parallel.
- * @memberOf Task
- * @param {Array[Promise.<*>]} taskPromises - Promises returned by each {@link Task}'s <code>do()</code> method.
+ * @memberof Task
+ * @param {Promise[]} taskPromises - Promises returned by each {@link Task}'s <code>do()</code> method.
  * @returns {Promise.<*>}
  */
 Task.parallel = function parallel(taskPromises) {
@@ -138,7 +138,7 @@ Task.parallel = function parallel(taskPromises) {
  * }).catch(function() {
  *    console.log('Failed even after 10 tries!');
  * });
- * @memberOf Task
+ * @memberof Task
  * @param {Task} task - {@link Task} to be tried.
  * @param {Number} tries - Maximum number of tries.
  * @returns {Promise.<*>}

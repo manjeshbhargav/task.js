@@ -41,7 +41,7 @@ describe('Task', () => {
       return task.do();
     });
 
-    it('should reject the promise if failed is called', () => {
+    it('should reject the promise if failed() is called', () => {
       return new Promise((resolve, reject) => {
         var task = new Task('name', (done, failed) => {
           failed();
