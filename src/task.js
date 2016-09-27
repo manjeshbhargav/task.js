@@ -58,9 +58,8 @@ Task.create = function create(name, template) {
  * @param {...*} arguments - Arguments for running the template.
  * @returns {Promise.<*>}
  */
-Task.do = function doTask() {
-  var args = [].slice.call(arguments);
-  var template = args.shift();
+Task.do = function doTask(template) {
+  var args = [].slice.call(arguments, 1);
   var task = new Task('anonymous', template);
   return task.do.apply(task, args);
 };
@@ -79,6 +78,7 @@ Task.do = function doTask() {
  * });
  * @memberOf Task
  * @param {Array[Task]} tasks - Tasks to be performed in sequence.
+ * @param {...*} arguments - Arguments for the first task.
  * @returns {Promise.<*>}
  */
 Task.sequence = function sequence(tasks) {
@@ -95,11 +95,42 @@ Task.sequence = function sequence(tasks) {
 
 /**
  * Perform {@link Task}s in parallel.
+ * @memberOf Task
  * @param {Array[Promise.<*>]} taskPromises - Promises returned by each {@link Task}'s <code>do()</code> method.
  * @returns {Promise.<*>}
  */
 Task.parallel = function parallel(taskPromises) {
   return Promise.all(taskPromises);
+};
+
+/**
+ * Try to do a {@link Task} at most n times until done.
+ * @example
+ * var task = Task.create('try', function(done, failed) {...});
+ * Task.try(task, 10).then(function() {
+ *    console.log('Successful before 10 tries!');
+ * }).catch(function() {
+ *    console.log('Failed even after 10 tries!');
+ * });
+ * @memberOf Task
+ * @param {Task} task - {@link Task} to be tried.
+ * @param {Number} tries - Maximum number of tries.
+ * @returns {Promise.<*>}
+ */
+Task.try = function tryTask(task, tries) {
+  var taskArgs = [].slice.call(arguments, 2);
+  return Task.do(function(done, failed) {
+    var tryOnce = function tryOnce(error) {
+      if (tries > 0) {
+        tries--;
+        task.do.apply(task, taskArgs).then(done).catch(tryOnce);
+      }
+      else {
+        failed(error);
+      }
+    };
+    tryOnce();
+  });
 };
 
 /**
