@@ -1,5 +1,13 @@
 'use strict';
 
+var isArrayOf = function isArrayOf(array, ItemType) {
+  return (
+    typeof array === 'object' &&
+    array.hasOwnProperty('length') &&
+    array.every(function(item) { return (item instanceof ItemType); })
+  );
+};
+
 /**
  * Create a new {@link Task}
  * @class
@@ -43,6 +51,12 @@ function Task(name, template) {
  * @returns {Task}
  */
 Task.create = function create(name, template) {
+  if (typeof name !== 'string') {
+    throw(new Error('name must be a string'));
+  }
+  if (typeof template !== 'function') {
+    throw(new Error('template must be a function'));
+  }
   return new Task(name, template);
 };
 
@@ -59,6 +73,10 @@ Task.create = function create(name, template) {
  * @returns {Promise.<*>}
  */
 Task.do = function doTask(template) {
+  if (typeof template !== 'function') {
+    throw(new Error('template must be a function'));
+  }
+
   var args = [].slice.call(arguments, 1);
   var task = new Task('anonymous', template);
   return task.do.apply(task, args);
@@ -67,9 +85,9 @@ Task.do = function doTask(template) {
 /**
  * Perform a sequence of {@link Task}s.
  * @example
- * var task1 = Task.create('task 1', function(done, failed) {...};
- * var task2 = Task.create('task 2', function(task1Result, done, failed) {...};
- * var task3 = Task.create('task 3', function(task2Result, done, failed) {...};
+ * var task1 = Task.create('task 1', function(done, failed) {...});
+ * var task2 = Task.create('task 2', function(task1Result, done, failed) {...});
+ * var task3 = Task.create('task 3', function(task2Result, done, failed) {...});
  *
  * Task.sequence([task1, task2, task3]).then(function(task3Result) {
  *    console.log('All done one after the other!');
@@ -82,6 +100,10 @@ Task.do = function doTask(template) {
  * @returns {Promise.<*>}
  */
 Task.sequence = function sequence(tasks) {
+  if (!isArrayOf(tasks, Task)) {
+    throw(new Error('Argument should be an array of tasks.'));
+  }
+
   var firstTaskArgs = [].slice.call(arguments, 1);
   var next = function next() {
     if (tasks.length) {
@@ -90,6 +112,7 @@ Task.sequence = function sequence(tasks) {
     }
     return Promise.resolve.apply(Promise, arguments);
   };
+
   return next.apply(null, firstTaskArgs);
 };
 
@@ -100,6 +123,9 @@ Task.sequence = function sequence(tasks) {
  * @returns {Promise.<*>}
  */
 Task.parallel = function parallel(taskPromises) {
+  if (!isArrayOf(taskPromises, Promise)) {
+    throw(new Error('Argument should be an array of task promises.'));
+  }
   return Promise.all(taskPromises);
 };
 
@@ -118,6 +144,13 @@ Task.parallel = function parallel(taskPromises) {
  * @returns {Promise.<*>}
  */
 Task.try = function tryTask(task, tries) {
+  if (!(task instanceof Task)) {
+    throw(new Error('First argument should be a task.'));
+  }
+  if (typeof tries !== 'number') {
+    throw(new Error('Second argument should be the number of tries.'));
+  }
+
   var taskArgs = [].slice.call(arguments, 2);
   return Task.do(function(done, failed) {
     var tryOnce = function tryOnce(error) {
@@ -142,7 +175,12 @@ Task.prototype.do = function doTask() {
   var args = [].slice.call(arguments);
   var self = this;
   return new Promise(function executor(resolve, reject) {
-    self.template.apply(null, args.concat([resolve, reject]));
+    try {
+      self.template.apply(null, args.concat([resolve, reject]));
+    }
+    catch(e) {
+      reject(e);
+    }
   });
 };
 
