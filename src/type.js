@@ -30,6 +30,8 @@ Type.prototype.isArrayOf = function isArrayOf(Type) {
   }));
 };
 
-module.exports = function type(variant) {
+function type(variant) {
   return new Type(variant);
-};
+}
+
+module.exports = type;

@@ -214,9 +214,15 @@ Task.try = function tryTask(task, tries) {
 Task.prototype.do = function doTask() {
   var args = [].slice.call(arguments);
   var self = this;
-  return new Promise(function executor(resolve, reject) {
+  return new Promise(function execute(resolve, reject) {
     try {
-      self.template.apply(null, args.concat([resolve, reject]));
+      var ret = self.template.apply(null, args.concat([resolve, reject]));
+      if (type(ret).isInstanceOf(Promise)) {
+        Promise.resolve(ret).then(resolve).catch(reject);
+      }
+      else if (!type(ret).is('undefined')) {
+        resolve(ret);
+      }
     }
     catch(e) {
       reject(e);
