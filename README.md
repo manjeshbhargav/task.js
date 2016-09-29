@@ -15,7 +15,7 @@ pattern to allow application logic to specify when a task is `done(result)` or `
 
 ## Task `template`:
 A `template` is basically a `function` that defines the set of instructions that the task will be performing. It follows this format:
-```
+```javascript
 /**
  * A task template.
  * @param {...*} taskArguments - Arguments for executing the task.
@@ -104,3 +104,52 @@ on to the `catch()` callback.
     console.error('Promise returned by the template was rejected with - ', error);
   });
   ```
+
+## `do`ing tasks serially:
+Sometimes we need to perform a set of tasks serially, where the next task depends on the result from the previous task.
+We can do it like this:
+```
+var task1 = Task.create('task1', function(a, b, done, failed) {...});
+var task2 = Task.create('task2', function(task1Result, done, failed) {...});
+var task3 = Task.create('task3', function(task2Result, done, failed) {...});
+
+Task.sequence([task1, task2, task3], ...argsForTask1).then(function(task3Result) {
+  console.log('Result of task3 - ', task3Result);
+}).catch(function(error) {
+  console.error('One of the tasks failed - ', error);
+});
+```
+
+## `do`ing tasks in parallel:
+Sometimes we need to wait for a set of independent tasks to be executed before we can proceed. We can do it like this:
+```
+var task1 = Task.create('task1', function(a, b, done, failed) {...});
+var task2 = Task.create('task2', function(d, e, f, done, failed) {...});
+var task3 = Task.create('task3', function(done, failed) {...});
+
+Task.parallel([
+  task1.do(1, 2),
+  task2.do('3', true, {}),
+  task3.do()
+]).then(function(taskResults) {
+  console.log('Results of all tasks - ', taskResults);
+}).catch(function(error) {
+  console.error('One of the tasks failed - ', error);
+});
+```
+
+## `do`ing an anonymous task:
+Sometimes we don't want to create and then do a task because it is one-off and we don't intend to re-do it at any point in the
+future. We can do it like this:
+```
+Task.do(function(a, b, done, failed) {
+  startMyApplication(a, b, function(started, result) {
+    var status = started ? done : failed;
+    status(result);
+  });
+}, 1, '2').then(function(outcome) {
+  console.log('Application successfully started! - ', outcome);
+}).catch(function(error) {
+  console.error('Problem starting application! - ', error);
+});
+```
