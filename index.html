@@ -20,7 +20,8 @@
 
     <section class="main-content">
       <h1>
-<a id="taskjs" class="anchor" href="#taskjs" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>task.js</h1>
+<a id="taskjs" class="anchor" href="#taskjs" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><a href="https://github.com/manjeshbhargav/task.js.git">task.js</a>
+</h1>
 
 <p><code>task.js</code> is a JavaScript library for creating logical groups of instructions called <code>tasks</code>. These tasks leverage the <code>Promise</code> pattern to allow application logic to specify when a task is <code>done(result)</code> or <code>failed(reason)</code>.</p>
 
@@ -33,6 +34,31 @@
 <li>You can leverage APIs to run a sequence of tasks, or try the same task multiple times etc.</li>
 <li>You can give a human readable name to your tasks thereby improving code readability.</li>
 <li>These tasks can be easily testable with <code>Promise</code> based frameworks like <code>mocha.js</code>.</li>
+</ul>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h2>
+
+<ul>
+<li>
+<p>For <code>Node.js</code> or <code>browserify/webpack</code> projects</p>
+
+<pre><code>npm install lib-task
+</code></pre>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> Task <span class="pl-k">=</span> <span class="pl-c1">require</span>(<span class="pl-s"><span class="pl-pds">'</span>lib-task<span class="pl-pds">'</span></span>);</pre></div>
+</li>
+<li>
+<p>For standard web projects</p>
+
+<pre><code>git clone https://github.com/manjeshbhargav/task.js.git
+</code></pre>
+
+<pre><code>cd task.js &amp;&amp; npm run build
+</code></pre>
+
+<p>Then, you can use <code>./dist/task.js</code> or <code>./dist/task.min.js</code> in your web project using <code>&lt;script&gt;</code>.</p>
+</li>
 </ul>
 
 <h2>
@@ -71,7 +97,8 @@
   });
 });</pre></div>
 
-<p>Here, <code>endpoint</code> and <code>credentials</code> are the arguments required for doing the task. In this example, <code>done()</code> is called when the login <code>endpoint</code> responds with a success <code>JSON</code> message, and <code>failed()</code> is called when it responds with the reason for the failure.</p>
+<p>Here, <code>endpoint</code> and <code>credentials</code> are the arguments required for doing the task. In this example, <code>done()</code> is called when the login
+<code>endpoint</code> responds with a success <code>JSON</code> message, and <code>failed()</code> is called when it responds with the reason for the failure.</p>
 
 <p>There are other ways to specify when the task is <code>done/failed</code>:</p>
 
@@ -108,7 +135,7 @@
   <span class="pl-en">console</span>.<span class="pl-c1">error</span>(<span class="pl-s"><span class="pl-pds">'</span>Login failed! - <span class="pl-pds">'</span></span>, error);
 });</pre></div>
 
-<p>Here, the argument passed to <code>done()</code> is passed on to the <code>Promise</code>'s <code>then()</code> callback, while the argument passed to <code>failed()</code> is passed on to the <code>catch()</code> callback.</p>
+<p>Here, the argument passed to <code>done()</code> is passed on to the <code>Promise</code>'s <code>then()</code> callback, while the argument passed to <code>failed()</code> is passedon to the <code>catch()</code> callback.</p>
 
 <ul>
 <li>
