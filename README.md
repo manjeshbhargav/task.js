@@ -1,4 +1,4 @@
-# task.js
+# [task.js](https://github.com/manjeshbhargav/task.js.git)
 
 `task.js` is a JavaScript library for creating logical groups of instructions called `tasks`. These tasks leverage the `Promise`
 pattern to allow application logic to specify when a task is `done(result)` or `failed(reason)`.
@@ -9,6 +9,25 @@ pattern to allow application logic to specify when a task is `done(result)` or `
 * You can leverage APIs to run a sequence of tasks, or try the same task multiple times etc.
 * You can give a human readable name to your tasks thereby improving code readability.
 * These tasks can be easily testable with `Promise` based frameworks like `mocha.js`.
+
+## Installation
+
+* For `Node.js` or `browserify/webpack` projects
+    ```
+    npm install lib-task
+    ```
+    ```javascript
+    var Task = require('lib-task');
+    ```
+
+* For standard web projects
+    ```
+    git clone https://github.com/manjeshbhargav/task.js.git
+    ```
+    ```
+    cd task.js && npm run build
+    ```
+    Then, you can use `./dist/task.js` or `./dist/task.min.js` in your web project using `<script>`.
 
 ## Task `template`
 A `template` is basically a `function` that defines the set of instructions that the task will be performing. It follows this format:
