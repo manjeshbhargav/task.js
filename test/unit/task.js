@@ -142,4 +142,73 @@ describe('Task', () => {
       });
     });
   });
+
+  describe('.parallel', () => {
+    it('should return a promise', () => {
+      assert(Task.parallel([ Task.create('task', done => done()).do() ]) instanceof Promise);
+    });
+
+    it('should throw if argument is not an array of task promises', () => {
+      assert.throws(Task.parallel.bind(Task));
+      assert.throws(Task.parallel.bind(Task, [{}, 1, 2]));
+      assert.throws(Task.parallel.bind(Task, [Task.create('name', () => {})]));
+    });
+
+    it('should not throw if argument is an array of promises', () => {
+      assert.doesNotThrow(Task.parallel.bind(Task, [
+        Task.create('task1', () => {}).do(),
+        Task.create('task2', () => {}).do(),
+      ]));
+    });
+
+    it('should resolve the promise with the results when all tasks are done', () => {
+      return Task.parallel([
+        Task.create('task1', done => done(1)).do(),
+        Task.create('task2', done => done(2)).do(),
+        Task.create('task3', done => done(3)).do()
+      ]).then(results => assert.deepEqual(results, [1, 2, 3]));
+    });
+
+    it('should reject the promise if any one of the tasks fail', () => {
+      return new Promise((resolve, reject) => {
+        return Task.parallel([
+          Task.create('task1', done => done(1)).do(),
+          Task.create('task2', (done, failed) => failed()).do(),
+          Task.create('task3', done => done(3)).do()
+        ]).then(reject).catch(resolve);
+      });
+    });
+  });
+
+  describe('.try', () => {
+    it('should return a promise', () => {
+      assert(Task.try(Task.create('task', () => {}), 10) instanceof Promise);
+    });
+
+    it('should throw if the first argument is not a task', () => {
+      assert.throws(Task.try.bind(Task, {}, 10));
+    });
+
+    it('should throw if the second argument is not a number', () => {
+      assert.throws(Task.try.bind(Task, Task.create('task', () => {}), '10'));
+    });
+
+    it('should resolve the promise if the task is done before max retries', () => {
+      var maxRetries = 10;
+      var task = Task.create('task', (done, failed) => {
+        maxRetries--;
+        (maxRetries === 5 ? done : failed)();
+      });
+      return Task.try(task, maxRetries).then(() => {
+        assert.equal(maxRetries, 5);
+      });
+    });
+
+    it('should reject the promise if the task fails even after max retries', () => {
+      return new Promise((resolve, reject) => {
+        var task = Task.create('task', (done, failed) => failed());
+        Task.try(task, 10).then(reject).catch(resolve);
+      });
+    });
+  });
 });
