@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "istanbul cover ./node_modules/mocha/bin/_mocha ./test/unit && codecov -t :1a08e152-40cb-40a8-8a69-3365182cfdc5",
+    "test": "istanbul cover ./node_modules/mocha/bin/_mocha ./test/unit",
     "clean": "rm -rf dist",
     "build": "gulp",
     "docs": "jsdoc ./src -r -d ./dist/docs -t ./node_modules/ink-docstrap/template -R README.md"
