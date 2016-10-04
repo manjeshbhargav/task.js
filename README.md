@@ -1,6 +1,7 @@
 # [task.js](https://github.com/manjeshbhargav/task.js.git)
 
 [![npm version](https://badge.fury.io/js/lib-task.svg)](https://badge.fury.io/js/lib-task)
+[![Travis CI](https://travis-ci.org/manjeshbhargav/task.js.svg)](https://travis-ci.org/manjeshbhargav/task.js.svg)
 [![Lincense MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://img.shields.io/badge/License-MIT-blue.svg)
 
 `task.js` is a JavaScript library for creating logical groups of instructions called `tasks`. These tasks leverage the `Promise`
@@ -9,7 +10,7 @@ pattern to allow application logic to specify when a task is `done(result)` or `
 ## Advantages over direct `Promise`s
 * You don't have to promisify your async functions that use callbacks.
 * However, you can safely use `Promise`s within tasks.
-* You can leverage APIs to run a sequence of tasks, or try the same task multiple times etc.
+* Powerful APIs to execute a group of tasks, or the same task a number of times.
 * You can give a human readable name to your tasks thereby improving code readability.
 * These tasks can be easily testable with `Promise` based frameworks like `mocha.js`.
 
@@ -215,7 +216,7 @@ var getContent = Task.create('get html content', function(url, done, failed) {
 var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
 Task.map(domains, getContent).then(function(content) {
   content.forEach(function(html, i) {
-    console.log('Content["' + domains[i] + '"]: ', content);
+    console.log('Content["' + domains[i] + '"]: ', html);
   });
 }).catch(function(error) {
   console.log('Failed to get content - ', error);
