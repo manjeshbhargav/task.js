@@ -23,7 +23,12 @@
 <a id="taskjs" class="anchor" href="#taskjs" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><a href="https://github.com/manjeshbhargav/task.js.git">task.js</a>
 </h1>
 
-<p><code>task.js</code> is a JavaScript library for creating logical groups of instructions called <code>tasks</code>. These tasks leverage the <code>Promise</code> pattern to allow application logic to specify when a task is <code>done(result)</code> or <code>failed(reason)</code>.</p>
+<p><a href="https://badge.fury.io/js/lib-task"><img src="https://badge.fury.io/js/lib-task.svg" alt="npm version"></a>
+<a href="https://travis-ci.org/manjeshbhargav/task.js.svg"><img src="https://travis-ci.org/manjeshbhargav/task.js.svg" alt="Travis CI"></a>
+<a href="https://img.shields.io/badge/License-MIT-blue.svg"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="Lincense MIT"></a></p>
+
+<p><code>task.js</code> is a JavaScript library for creating logical groups of instructions called <code>tasks</code>. These tasks leverage the <code>Promise</code>
+pattern to allow application logic to specify when a task is <code>done(result)</code> or <code>failed(reason)</code>.</p>
 
 <h2>
 <a id="advantages-over-direct-promises" class="anchor" href="#advantages-over-direct-promises" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Advantages over direct <code>Promise</code>s</h2>
@@ -31,7 +36,7 @@
 <ul>
 <li>You don't have to promisify your async functions that use callbacks.</li>
 <li>However, you can safely use <code>Promise</code>s within tasks.</li>
-<li>You can leverage APIs to run a sequence of tasks, or try the same task multiple times etc.</li>
+<li>Powerful APIs to execute a group of tasks, or the same task a number of times.</li>
 <li>You can give a human readable name to your tasks thereby improving code readability.</li>
 <li>These tasks can be easily testable with <code>Promise</code> based frameworks like <code>mocha.js</code>.</li>
 </ul>
@@ -68,17 +73,17 @@
 <p>A <code>template</code> is basically a <code>function</code> that defines the set of instructions that the task will be performing. It follows this format:</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-c">/**</span>
-<span class="pl-c"> * A task template.</span>
-<span class="pl-c"> * <span class="pl-k">@param</span> {...*} taskArguments - Arguments for executing the task.</span>
-<span class="pl-c"> * <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">done</span> - Called (with results, if any) by the task when it's done.</span>
-<span class="pl-c"> * <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">failed</span> - Called (with errors, if any) by the task whe it fails.</span>
-<span class="pl-c"> * <span class="pl-k">@returns</span> <span class="pl-en">{*}</span></span>
-<span class="pl-c"> */</span>
-<span class="pl-k">function</span> <span class="pl-en">template</span>(<span class="pl-k">...</span><span class="pl-v">taskArguments</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
-  <span class="pl-k">...</span>
-  <span class="pl-k">...</span>
-  <span class="pl-en">doSomeAsyncTask</span>(args, done, failed);
-}</pre></div>
+<span class="pl-c"> A task template.</span>
+<span class="pl-c"> <span class="pl-k">@param</span> {...*} taskArguments - Arguments for executing the task.</span>
+<span class="pl-c"> <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">done</span> - Called (with results, if any) by the task when it's done.</span>
+<span class="pl-c"> <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">failed</span> - Called (with errors, if any) by the task when it fails.</span>
+<span class="pl-c"> <span class="pl-k">@returns</span> <span class="pl-en">{*}</span></span>
+<span class="pl-c">/</span>
+<span class="pl-c">function template(...taskArguments, done, failed) {</span>
+<span class="pl-c">  ...</span>
+<span class="pl-c">  ...</span>
+<span class="pl-c">  doSomeAsyncTask(args, done, failed);</span>
+<span class="pl-c">}</span></pre></div>
 
 <h2>
 <a id="creating-a-task" class="anchor" href="#creating-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating a task</h2>
@@ -104,14 +109,16 @@
 
 <ul>
 <li>
-<p><code>return</code>ing a value: A task is considered <code>done</code> if the <code>template</code> <code>return</code>s any non-<code>Promise</code> value, and <code>failed</code> if it throws an exception.</p>
+<p><code>return</code>ing a value: A task is considered <code>done</code> if the <code>template</code>
+<code>return</code>s any non-<code>Promise</code> value, and <code>failed</code> if it throws an exception.</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> addTask <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>add two numbers<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">a</span>, <span class="pl-smi">b</span>) {
   <span class="pl-k">return</span> (a <span class="pl-k">+</span> b);
 });</pre></div>
 </li>
 <li>
-<p><code>return</code>ing a <code>Promise</code>: A task is considered <code>done/failed</code> if the <code>Promise</code> returned by the <code>template</code> is <code>resolved/rejected</code>.</p>
+<p><code>return</code>ing a <code>Promise</code>: A task is considered <code>done/failed</code> if the
+<code>Promise</code> returned by the <code>template</code> is <code>resolved/rejected</code>.</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> promiseTask <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>track a promise<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">a</span>, <span class="pl-smi">b</span>) {
   <span class="pl-k">...</span>
@@ -124,7 +131,8 @@
 <h2>
 <a id="executing-a-task" class="anchor" href="#executing-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Executing a task</h2>
 
-<p>The <code>loginAttempt</code> task that was created in the previous section can be executed like this:</p>
+<p>The <code>loginAttempt</code> task that was created in the previous section
+can be executed like this:</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-smi">loginAttempt</span>.<span class="pl-en">do</span>(<span class="pl-s"><span class="pl-pds">'</span>/services/login<span class="pl-pds">'</span></span>, {
   usename<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>johndoe<span class="pl-pds">'</span></span>,
@@ -135,7 +143,9 @@
   <span class="pl-en">console</span>.<span class="pl-c1">error</span>(<span class="pl-s"><span class="pl-pds">'</span>Login failed! - <span class="pl-pds">'</span></span>, error);
 });</pre></div>
 
-<p>Here, the argument passed to <code>done()</code> is passed on to the <code>Promise</code>'s <code>then()</code> callback, while the argument passed to <code>failed()</code> is passedon to the <code>catch()</code> callback.</p>
+<p>Here, the argument passed to <code>done()</code> is passed on to the <code>Promise</code>'s
+<code>then()</code> callback, while the argument passed to <code>failed()</code> is passed
+on to the <code>catch()</code> callback.</p>
 
 <ul>
 <li>
@@ -197,7 +207,8 @@ We can do it like this:</p>
 <h2>
 <a id="executing-an-anonymous-task" class="anchor" href="#executing-an-anonymous-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Executing an anonymous task</h2>
 
-<p>Sometimes we don't want to create and then do a task because it is one-off and we don't intend to re-do it at any point in the future. We can do it like this:</p>
+<p>Sometimes we don't want to create and then do a task because it is one-off and we don't intend to re-do it at any point in the
+future. We can do it like this:</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-smi">Task</span>.<span class="pl-en">do</span>(<span class="pl-k">function</span>(<span class="pl-smi">a</span>, <span class="pl-smi">b</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
   <span class="pl-en">startMyApplication</span>(a, b, <span class="pl-k">function</span>(<span class="pl-smi">started</span>, <span class="pl-smi">result</span>) {
@@ -233,6 +244,33 @@ We can do it like this:</p>
     <span class="pl-en">console</span>.<span class="pl-c1">error</span>(<span class="pl-s"><span class="pl-pds">'</span>Failed to connect after <span class="pl-pds">'</span></span> <span class="pl-k">+</span> numRetries <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">'</span> tries! - <span class="pl-pds">'</span></span>, error);
   });
 }</pre></div>
+
+<h1>
+<a id="running-a-task-for-each-item-in-an-array" class="anchor" href="#running-a-task-for-each-item-in-an-array" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Running a task for each item in an array</h1>
+
+<p>Sometimes we want to run a task on each item of an array, and once we have gotten all the results,
+act on them (like <code>Array.prototype.map()</code>, only async). We can do it like this:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> getContent <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>get html content<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">url</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+  <span class="pl-smi">http</span>.<span class="pl-c1">get</span>(url, <span class="pl-k">function</span>(<span class="pl-smi">response</span>) {
+    <span class="pl-k">var</span> html <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span></span>;
+    <span class="pl-smi">response</span>.<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>data<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">data</span>) {
+      html <span class="pl-k">+=</span> data;
+    });
+    <span class="pl-smi">response</span>.<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>end<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>() {
+      <span class="pl-en">done</span>(html);
+    });
+  }).<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>error<span class="pl-pds">'</span></span>, failed);
+});
+
+<span class="pl-k">var</span> domains <span class="pl-k">=</span> [<span class="pl-s"><span class="pl-pds">'</span>http://www.ex1.com<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>http://www.ex2.com<span class="pl-pds">'</span></span>];
+<span class="pl-smi">Task</span>.<span class="pl-en">map</span>(domains, getContent).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">content</span>) {
+  <span class="pl-smi">content</span>.<span class="pl-c1">forEach</span>(<span class="pl-k">function</span>(<span class="pl-smi">html</span>, <span class="pl-smi">i</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Content["<span class="pl-pds">'</span></span> <span class="pl-k">+</span> domains[i] <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">'</span>"]: <span class="pl-pds">'</span></span>, html);
+  });
+}).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Failed to get content - <span class="pl-pds">'</span></span>, error);
+});</pre></div>
 
       <footer class="site-footer">
         <span class="site-footer-owner"><a href="https://github.com/manjeshbhargav/task.js">task.js</a> is maintained by <a href="https://github.com/manjeshbhargav">manjeshbhargav</a>.</span>
