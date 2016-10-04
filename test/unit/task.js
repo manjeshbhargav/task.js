@@ -211,4 +211,60 @@ describe('Task', () => {
       });
     });
   });
+
+  describe('.map', () => {
+    it('should throw if the first argument is not an array', () => {
+      assert.throws(Task.map.bind(Task, {}, () => {}));
+    });
+
+    it('should throw if the second argument is not a template function and not a Task', () => {
+      assert.throws(Task.map.bind(Task, [], {}));
+    });
+
+    it('should not throw if the second argument is a template function', () => {
+      assert.doesNotThrow(Task.map.bind(Task, [], () => {}));
+    });
+
+    it('should not throw if the second argument is a Task', () => {
+      assert.doesNotThrow(Task.map.bind(Task, [], Task.create('task', () => {})));
+    });
+
+    it('should return a promise', () => {
+      assert(Task.map([], () => {}) instanceof Promise);
+    });
+
+    it('should resolve the promise when all tasks are done (template)', () => {
+      return Task.map([1, 2, 3], (num, done) => done(num + 1)).then(res => {
+        assert.equal(res.length, 3);
+        assert.deepEqual(res, [2, 3, 4]);
+      });
+    });
+
+    it('should resolve the promise when all tasks are done (Task)', () => {
+      return Task.map([1, 2, 3], Task.create('task', (num, done) => done(num + 1))).then(res => {
+        assert.equal(res.length, 3);
+        assert.deepEqual(res, [2, 3, 4]);
+      });
+    });
+
+    it('should reject the promise if any one task fails (template)', () => {
+      return new Promise((resolve, reject) => {
+        Task.map([1, 2, 3], (num, done, failed) => num === 2 ? failed() : done()).then(reject).catch(resolve);
+      });
+    });
+
+    it('should reject the promise if any one task fails (Task)', () => {
+      return new Promise((resolve, reject) => {
+        Task.map([1, 2, 3], Task.create('task', (num, done, failed) => num === 2 ? failed() : done())).then(reject).catch(resolve);
+      });
+    });
+
+    it('should resolve the promise if the array is empty (template)', () => {
+      return Task.map([], () => {});
+    });
+
+    it('should resolve the promise if the array is empty (Task)', () => {
+      return Task.map([], Task.create('task', () => {}));
+    });
+  });
 });

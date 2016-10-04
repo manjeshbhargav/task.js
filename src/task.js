@@ -199,6 +199,51 @@ Task.try = function tryTask(task, tries) {
 };
 
 /**
+ * Perform a task on an array of items.
+ * @example
+ * var getContent = Task.create('get html content', function(url, done, failed) {
+ *    http.get(url, function(response) {
+ *      var html = '';
+ *      response.on('data', function(data) {
+ *        html += data;
+ *      });
+ *      response.on('end', function() {
+ *        done(html);
+ *      });
+ *    }).on('error', failed);
+ * });
+ *
+ * var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
+ * Task.map(domains, getContent).then(function(content) {
+ *    content.forEach(function(html, i) {
+ *      console.log('Content["' + domains[i] + '"]: ', content);
+ *    });
+ * }).catch(function(error) {
+ *    console.log('Failed to get content - ', error);
+ * });
+ * @param {any[]} array - Array of items on which a task has to be performed.
+ * @param {Task|function} taskOrTemplate - {@link Task} to be performed or template function representing the task.
+ * @returns {Promise.<*>}
+ */
+Task.map = function map(array, taskOrTemplate) {
+  if(!type(array).isArray()) {
+    throw(new Error('First argument must be an array'));
+  }
+
+  var task = taskOrTemplate;
+  if (type(taskOrTemplate).is('function')) {
+    task = new Task('anonymous', taskOrTemplate);
+  }
+  else if(!type(taskOrTemplate).isInstanceOf(Task)) {
+    throw(new Error('Second argument must be a template function or a Task'));
+  }
+
+  return Task.parallel(array.map(function(item) {
+    return task.do(item);
+  }));
+};
+
+/**
  * Perform a {@link Task}.
  * @example
  * var task = Task.create('task name', function(a, b, done, failed) {...});
