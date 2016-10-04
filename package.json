@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha test/unit",
+    "test": "istanbul cover ./node_modules/mocha/bin/_mocha ./test/unit",
     "clean": "rm -rf dist",
     "build": "gulp",
     "docs": "jsdoc ./src -r -d ./dist/docs -t ./node_modules/ink-docstrap/template -R README.md"

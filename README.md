@@ -1,12 +1,16 @@
 # [task.js](https://github.com/manjeshbhargav/task.js.git)
 
+[![npm version](https://badge.fury.io/js/lib-task.svg)](https://badge.fury.io/js/lib-task)
+[![Travis CI](https://travis-ci.org/manjeshbhargav/task.js.svg)](https://travis-ci.org/manjeshbhargav/task.js.svg)
+[![Lincense MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://img.shields.io/badge/License-MIT-blue.svg)
+
 `task.js` is a JavaScript library for creating logical groups of instructions called `tasks`. These tasks leverage the `Promise`
 pattern to allow application logic to specify when a task is `done(result)` or `failed(reason)`.
 
 ## Advantages over direct `Promise`s
 * You don't have to promisify your async functions that use callbacks.
 * However, you can safely use `Promise`s within tasks.
-* You can leverage APIs to run a sequence of tasks, or try the same task multiple times etc.
+* Powerful APIs to execute a group of tasks, or the same task a number of times.
 * You can give a human readable name to your tasks thereby improving code readability.
 * These tasks can be easily testable with `Promise` based frameworks like `mocha.js`.
 
@@ -33,12 +37,12 @@ pattern to allow application logic to specify when a task is `done(result)` or `
 A `template` is basically a `function` that defines the set of instructions that the task will be performing. It follows this format:
 ```javascript
 /**
- * A task template.
- * @param {...*} taskArguments - Arguments for executing the task.
- * @param {function} done - Called (with results, if any) by the task when it's done.
- * @param {function} failed - Called (with errors, if any) by the task whe it fails.
- * @returns {*}
- */
+ A task template.
+ @param {...*} taskArguments - Arguments for executing the task.
+ @param {function} done - Called (with results, if any) by the task when it's done.
+ @param {function} failed - Called (with errors, if any) by the task when it fails.
+ @returns {*}
+/
 function template(...taskArguments, done, failed) {
   ...
   ...
@@ -191,4 +195,30 @@ function retryConnect() {
     console.error('Failed to connect after ' + numRetries + ' tries! - ', error);
   });
 }
+```
+
+# Running a task for each item in an array
+Sometimes we want to run a task on each item of an array, and once we have gotten all the results,
+act on them (like `Array.prototype.map()`, only async). We can do it like this:
+```javascript
+var getContent = Task.create('get html content', function(url, done, failed) {
+  http.get(url, function(response) {
+    var html = '';
+    response.on('data', function(data) {
+      html += data;
+    });
+    response.on('end', function() {
+      done(html);
+    });
+  }).on('error', failed);
+});
+
+var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
+Task.map(domains, getContent).then(function(content) {
+  content.forEach(function(html, i) {
+    console.log('Content["' + domains[i] + '"]: ', html);
+  });
+}).catch(function(error) {
+  console.log('Failed to get content - ', error);
+});
 ```

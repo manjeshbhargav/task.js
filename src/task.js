@@ -164,21 +164,36 @@ Task.parallel = function parallel(taskPromises) {
 /**
  * Try to do a {@link Task} at most n times until done.
  * @example
+ * <caption>Try with a {@link Task}</caption>
  * var task = Task.create('try', function(done, failed) {...});
  * Task.try(task, 10).then(function() {
  *    console.log('Successful before 10 tries!');
  * }).catch(function() {
  *    console.log('Failed even after 10 tries!');
  * });
+ *
+ * @example
+ * <caption>Try with a template function</caption>
+ * Task.try(function(done, failed) {...}, 10).then(function() {
+ *    console.log('Successful before 10 tries!');
+ * }).catch(function() {
+ *    console.log('Failed even after 10 tries!');
+ * });
  * @memberof Task
- * @param {Task} task - {@link Task} to be tried.
+ * @param {Task|function} taskOrTemplate - {@link Task} or template function to be tried.
  * @param {Number} tries - Maximum number of tries.
  * @returns {Promise.<*>}
  */
-Task.try = function tryTask(task, tries) {
-  if (!type(task).isInstanceOf(Task)) {
-    throw(new Error('First argument should be a task.'));
+Task.try = function tryTask(taskOrTemplate, tries) {
+  var task = taskOrTemplate;
+
+  if (type(taskOrTemplate).is('function')) {
+    task = new Task('anonymous', taskOrTemplate);
   }
+  else if (!type(taskOrTemplate).isInstanceOf(Task)) {
+    throw(new Error('First argument should be a task or a template.'));
+  }
+
   if (!type(tries).is('number')) {
     throw(new Error('Second argument should be the number of tries.'));
   }
@@ -196,6 +211,73 @@ Task.try = function tryTask(task, tries) {
     };
     tryOnce();
   });
+};
+
+/**
+ * Perform a task on an array of items.
+ * @example
+ * <caption>Map with a {@link Task}</caption>
+ * var getContent = Task.create('get html content', function(url, done, failed) {
+ *    http.get(url, function(response) {
+ *      var html = '';
+ *      response.on('data', function(data) {
+ *        html += data;
+ *      });
+ *      response.on('end', function() {
+ *        done(html);
+ *      });
+ *    }).on('error', failed);
+ * });
+ *
+ * var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
+ * Task.map(domains, getContent).then(function(content) {
+ *    content.forEach(function(html, i) {
+ *      console.log('Content["' + domains[i] + '"]: ', html);
+ *    });
+ * }).catch(function(error) {
+ *    console.log('Failed to get content - ', error);
+ * });
+ *
+ * @example
+ * <caption>Map with a template function</caption>
+ * var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
+ * Task.map(domains, function(url, done, failed) {
+ *    http.get(url, function(response) {
+ *      var html = '';
+ *      response.on('data', function(data) {
+ *        html += data;
+ *      });
+ *      response.on('end', function() {
+ *        done(html);
+ *      });
+ *    }).on('error', failed);
+ * }).then(function(content) {
+ *    content.forEach(function(html, i) {
+ *      console.log('Content["' + domains[i] + '"]: ', html);
+ *    });
+ * }).catch(function(error) {
+ *    console.log('Failed to get content - ', error);
+ * });
+ * @param {any[]} array - Array of items on which a task has to be performed.
+ * @param {Task|function} taskOrTemplate - {@link Task} to be performed or template function representing the task.
+ * @returns {Promise.<*>}
+ */
+Task.map = function map(array, taskOrTemplate) {
+  if(!type(array).isArray()) {
+    throw(new Error('First argument must be an array'));
+  }
+
+  var task = taskOrTemplate;
+  if (type(taskOrTemplate).is('function')) {
+    task = new Task('anonymous', taskOrTemplate);
+  }
+  else if(!type(taskOrTemplate).isInstanceOf(Task)) {
+    throw(new Error('Second argument must be a template function or a Task'));
+  }
+
+  return Task.parallel(array.map(function(item) {
+    return task.do(item);
+  }));
 };
 
 /**
