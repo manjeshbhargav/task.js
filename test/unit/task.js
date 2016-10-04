@@ -181,11 +181,7 @@ describe('Task', () => {
   });
 
   describe('.try', () => {
-    it('should return a promise', () => {
-      assert(Task.try(Task.create('task', () => {}), 10) instanceof Promise);
-    });
-
-    it('should throw if the first argument is not a task', () => {
+    it('should throw if the first argument is not a Task or a template', () => {
       assert.throws(Task.try.bind(Task, {}, 10));
     });
 
@@ -193,21 +189,49 @@ describe('Task', () => {
       assert.throws(Task.try.bind(Task, Task.create('task', () => {}), '10'));
     });
 
-    it('should resolve the promise if the task is done before max retries', () => {
-      var maxRetries = 10;
-      var task = Task.create('task', (done, failed) => {
-        maxRetries--;
-        (maxRetries === 5 ? done : failed)();
+    context('when the first argument is a template', () => {
+      it('should return a promise', () => {
+        assert(Task.try(() => {}, 10) instanceof Promise);
       });
-      return Task.try(task, maxRetries).then(() => {
-        assert.equal(maxRetries, 5);
+
+      it('should resolve the promise if the task is done before max retries', () => {
+        var maxRetries = 10;
+        return Task.try((done, failed) => {
+          maxRetries--;
+          (maxRetries === 5 ? done : failed)();
+        }, maxRetries).then(() => {
+          assert.equal(maxRetries, 5);
+        });
+      });
+
+      it('should reject the promise if the task fails even after max retries', () => {
+        return new Promise((resolve, reject) => {
+          Task.try((done, failed) => failed(), 10).then(reject).catch(resolve);
+        });
       });
     });
 
-    it('should reject the promise if the task fails even after max retries', () => {
-      return new Promise((resolve, reject) => {
-        var task = Task.create('task', (done, failed) => failed());
-        Task.try(task, 10).then(reject).catch(resolve);
+    context('when the first argument is a Task', () => {
+      it('should return a promise', () => {
+        assert(Task.try(Task.create('task', () => {}), 10) instanceof Promise);
+      });
+
+      it('should resolve the promise if the task is done before max retries', () => {
+        var maxRetries = 10;
+        var task = Task.create('task', (done, failed) => {
+          maxRetries--;
+          (maxRetries === 5 ? done : failed)();
+        });
+        return Task.try(task, maxRetries).then(() => {
+          assert.equal(maxRetries, 5);
+        });
+      });
+
+      it('should reject the promise if the task fails even after max retries', () => {
+        return new Promise((resolve, reject) => {
+          var task = Task.create('task', (done, failed) => failed());
+          Task.try(task, 10).then(reject).catch(resolve);
+        });
       });
     });
   });
@@ -229,42 +253,50 @@ describe('Task', () => {
       assert.doesNotThrow(Task.map.bind(Task, [], Task.create('task', () => {})));
     });
 
-    it('should return a promise', () => {
-      assert(Task.map([], () => {}) instanceof Promise);
-    });
+    context('when the second argument is a template function', () => {
+      it('should return a promise', () => {
+        assert(Task.map([], () => {}) instanceof Promise);
+      });
 
-    it('should resolve the promise when all tasks are done (template)', () => {
-      return Task.map([1, 2, 3], (num, done) => done(num + 1)).then(res => {
-        assert.equal(res.length, 3);
-        assert.deepEqual(res, [2, 3, 4]);
+      it('should resolve the promise when all tasks are done', () => {
+        return Task.map([1, 2, 3], (num, done) => done(num + 1)).then(res => {
+          assert.equal(res.length, 3);
+          assert.deepEqual(res, [2, 3, 4]);
+        });
+      });
+
+      it('should reject the promise if any one task fails', () => {
+        return new Promise((resolve, reject) => {
+          Task.map([1, 2, 3], (num, done, failed) => num === 2 ? failed() : done()).then(reject).catch(resolve);
+        });
+      });
+
+      it('should resolve the promise if the array is empty', () => {
+        return Task.map([], () => {});
       });
     });
 
-    it('should resolve the promise when all tasks are done (Task)', () => {
-      return Task.map([1, 2, 3], Task.create('task', (num, done) => done(num + 1))).then(res => {
-        assert.equal(res.length, 3);
-        assert.deepEqual(res, [2, 3, 4]);
+    context('when the second argument is a Task', () => {
+      it('should return a promise', () => {
+        assert(Task.map([], Task.create('task', () => {})) instanceof Promise);
       });
-    });
 
-    it('should reject the promise if any one task fails (template)', () => {
-      return new Promise((resolve, reject) => {
-        Task.map([1, 2, 3], (num, done, failed) => num === 2 ? failed() : done()).then(reject).catch(resolve);
+      it('should resolve the promise when all tasks are done', () => {
+        return Task.map([1, 2, 3], Task.create('task', (num, done) => done(num + 1))).then(res => {
+          assert.equal(res.length, 3);
+          assert.deepEqual(res, [2, 3, 4]);
+        });
       });
-    });
 
-    it('should reject the promise if any one task fails (Task)', () => {
-      return new Promise((resolve, reject) => {
-        Task.map([1, 2, 3], Task.create('task', (num, done, failed) => num === 2 ? failed() : done())).then(reject).catch(resolve);
+      it('should reject the promise if any one task fails', () => {
+        return new Promise((resolve, reject) => {
+          Task.map([1, 2, 3], Task.create('task', (num, done, failed) => num === 2 ? failed() : done())).then(reject).catch(resolve);
+        });
       });
-    });
 
-    it('should resolve the promise if the array is empty (template)', () => {
-      return Task.map([], () => {});
-    });
-
-    it('should resolve the promise if the array is empty (Task)', () => {
-      return Task.map([], Task.create('task', () => {}));
+      it('should resolve the promise if the array is empty', () => {
+        return Task.map([], Task.create('task', () => {}));
+      });
     });
   });
 });

@@ -1,5 +1,8 @@
 # [task.js](https://github.com/manjeshbhargav/task.js.git)
 
+[![npm version](https://badge.fury.io/js/lib-task.svg)](https://badge.fury.io/js/lib-task)
+[![Lincense MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://img.shields.io/badge/License-MIT-blue.svg)
+
 `task.js` is a JavaScript library for creating logical groups of instructions called `tasks`. These tasks leverage the `Promise`
 pattern to allow application logic to specify when a task is `done(result)` or `failed(reason)`.
 
