@@ -73,17 +73,17 @@ pattern to allow application logic to specify when a task is <code>done(result)<
 <p>A <code>template</code> is basically a <code>function</code> that defines the set of instructions that the task will be performing. It follows this format:</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-c">/**</span>
-<span class="pl-c"> A task template.</span>
-<span class="pl-c"> <span class="pl-k">@param</span> {...*} taskArguments - Arguments for executing the task.</span>
-<span class="pl-c"> <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">done</span> - Called (with results, if any) by the task when it's done.</span>
-<span class="pl-c"> <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">failed</span> - Called (with errors, if any) by the task when it fails.</span>
-<span class="pl-c"> <span class="pl-k">@returns</span> <span class="pl-en">{*}</span></span>
-<span class="pl-c">/</span>
-<span class="pl-c">function template(...taskArguments, done, failed) {</span>
-<span class="pl-c">  ...</span>
-<span class="pl-c">  ...</span>
-<span class="pl-c">  doSomeAsyncTask(args, done, failed);</span>
-<span class="pl-c">}</span></pre></div>
+<span class="pl-c"> * A task template.</span>
+<span class="pl-c"> * <span class="pl-k">@param</span> {...*} taskArguments - Arguments for executing the task.</span>
+<span class="pl-c"> * <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">done</span> - Called (with results, if any) by the task when it's done.</span>
+<span class="pl-c"> * <span class="pl-k">@param</span> <span class="pl-en">{function}</span> <span class="pl-smi">failed</span> - Called (with errors, if any) by the task when it fails.</span>
+<span class="pl-c"> * <span class="pl-k">@returns</span> <span class="pl-en">{*}</span></span>
+<span class="pl-c"> */</span>
+<span class="pl-k">function</span> <span class="pl-en">template</span>(<span class="pl-k">...</span><span class="pl-v">taskArguments</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+  <span class="pl-k">...</span>
+  <span class="pl-k">...</span>
+  <span class="pl-en">doSomeAsyncTask</span>(args, done, failed);
+}</pre></div>
 
 <h2>
 <a id="creating-a-task" class="anchor" href="#creating-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating a task</h2>
