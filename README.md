@@ -37,12 +37,12 @@ pattern to allow application logic to specify when a task is `done(result)` or `
 A `template` is basically a `function` that defines the set of instructions that the task will be performing. It follows this format:
 ```javascript
 /**
- A task template.
- @param {...*} taskArguments - Arguments for executing the task.
- @param {function} done - Called (with results, if any) by the task when it's done.
- @param {function} failed - Called (with errors, if any) by the task when it fails.
- @returns {*}
-/
+ * A task template.
+ * @param {...*} taskArguments - Arguments for executing the task.
+ * @param {function} done - Called (with results, if any) by the task when it's done.
+ * @param {function} failed - Called (with errors, if any) by the task when it fails.
+ * @returns {*}
+ */
 function template(...taskArguments, done, failed) {
   ...
   ...
