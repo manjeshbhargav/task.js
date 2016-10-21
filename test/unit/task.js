@@ -46,6 +46,23 @@ describe('Task', () => {
       });
     });
 
+    it('should resolve the Promise if done() is called before timeout', () => {
+      var task = new Task('name', done => { setTimeout(done); });
+      task.timeout(1000, 'timeout');
+      return task.do();
+    });
+
+    it('should reject the Promise if failed() is called before timeout', () => {
+      return new Promise((resolve, reject) => {
+        var task = new Task('name', (done, failed) => { setTimeout(failed.bind(null, 'failed')); });
+        task.timeout(1000, 'timeout');
+        return task.do().then(reject).catch(reason => {
+          assert.equal(reason, 'failed');
+          resolve();
+        });
+      });
+    });
+
     context('when template returns a value instead of calling done() or failed()', () => {
       context('when return value is a Promise', () => {
         it('should resolve its Promise if the returned Promise is resolved', () => {
@@ -236,7 +253,7 @@ describe('Task', () => {
       return Task.sequence('seq', [
         Task.create('task 1', (arg, done) => done(arg + 2)),
         Task.create('task 2', (res, done) => done(res + 3)),
-        Task.create('task 3', (res, done) => done(res + 4))
+        (res, done) => done(res + 4)
       ]).do(1).then(res => assert.equal(res, 10));
     });
 
@@ -244,7 +261,7 @@ describe('Task', () => {
       return Task.do((done, failed) => {
         Task.sequence('seq', [
           Task.create('task 1', done => done()),
-          Task.create('task 2', (done, failed) => failed()),
+          (done, failed) => failed(),
           Task.create('task 3', done => done())
         ]).do().then(failed).catch(done);
       });

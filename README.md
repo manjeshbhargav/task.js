@@ -168,6 +168,7 @@ var getUrl = Task.create('get content of url', function(url, done, failed) {
 // pass to the Promise's catch() that helps us determine why it
 // was rejected.
 getUrl.timeout(5000, { reason: 'timeout' });
+
 getUrl.do('http://www.x.y.com/?a=b').then(function(response) {
   console.log('Response: ', response);
 }).catch(function(error) {

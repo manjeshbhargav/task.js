@@ -363,7 +363,7 @@ Task.prototype.do = function doTask() {
     self._cancel = _reject;
 
     var ret = self.template.apply(null, args.concat([_resolve, _reject]));
-    if (typeof ret instanceof Promise) {
+    if (ret instanceof Promise) {
       ret.then(_resolve).catch(_reject);
     }
     else if (typeof ret !== 'undefined') {
