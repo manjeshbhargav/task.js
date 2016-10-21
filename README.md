@@ -126,7 +126,6 @@ on to the `catch()` callback.
   ```
 
 ## Canceling a task
-
 Sometimes we need to cancel a task after starting it. We can do it like this:
 ```javascript
 var timeout = null;
@@ -145,10 +144,39 @@ task.do(5000).then(function() {...}).catch(function(reason) {
   timeout = null;
 });
 
+// The argument to cancel() is anything that we want to
+// pass to the Promise's catch() that helps us determine why it
+// was rejected.
 task.cancel('canceled');
 ```
-`Task#cancel()` accepts an optional argument that is passed on to the `Promise#catch()` callback. This helps us determine
-whether we are in `Promise#catch()` because of `failed()` or because of `Task#cancel()`.
+
+## Timing out a task
+Sometimes we want to set a time limit for a task to complete (`done()` or `failed()`). We can do it like this:
+```javascript
+var xhr = new XMLHttpRequest();
+var getUrl = Task.create('get content of url', function(url, done, failed) {
+  xhr.open('GET', url, true);
+  xhr.onreadystatechange = function() {
+    if (xhr.status === 200 && xhr.readyState === 4) {
+      done(xhr.responseText);
+    }
+  };
+  xhr.send();
+});
+
+// The second argument to timeout() is anything that we want to
+// pass to the Promise's catch() that helps us determine why it
+// was rejected.
+getUrl.timeout(5000, { reason: 'timeout' });
+getUrl.do('http://www.x.y.com/?a=b').then(function(response) {
+  console.log('Response: ', response);
+}).catch(function(error) {
+  if (error.reason === 'timeout') {
+    console.log('Task timed out.');
+  }
+  xhr.abort();
+});
+```
 
 ## Executing tasks serially
 Sometimes we need to perform a set of tasks serially, where the next task depends on the result from the previous task.

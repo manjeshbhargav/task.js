@@ -30,6 +30,10 @@ function Task(name, template) {
       value: null,
       writable: true
     },
+    _timeout: {
+      value: null,
+      writable: true
+    },
     name: {
       value: name,
       enumerable: true
@@ -335,11 +339,24 @@ Task.prototype.do = function doTask() {
   var self = this;
 
   return new Promise(function(resolve, reject) {
+    var timeout = typeof self._timeout === 'function'
+      ? self._timeout()
+      : null;
     var _resolve = function _resolve() {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      self._timeout = null;
       self._cancel = null;
       resolve.apply(this, arguments);
     };
     var _reject = function _reject() {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      self._timeout = null;
       self._cancel = null;
       reject.apply(this, arguments);
     };
@@ -376,11 +393,51 @@ Task.prototype.do = function doTask() {
  *
  * task.cancel('canceled');
  * @param {*} [reason] - Reason for canceling task.
- * @returns {boolean} - true if called while task is running, false if not.
+ * @returns {boolean} - true if called while task is running, false otherwise.
  */
 Task.prototype.cancel = function cancel(reason) {
   if (typeof this._cancel === 'function') {
     this._cancel(reason);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Set the timeout period for the task.
+ * @example
+ * var xhr = new XMLHttpRequest();
+ * var getUrl = Task.create('get content of url', function(url, done, failed) {
+ *    xhr.open('GET', url, true);
+ *    xhr.onreadystatechange = function() {
+ *      if (xhr.status === 200 && xhr.readyState === 4) {
+ *        done(xhr.responseText);
+ *      }
+ *    };
+ *    xhr.send();
+ * });
+ *
+ * getUrl.timeout(5000, { reason: 'timeout' });
+ * getUrl.do('http://www.x.y.com/?a=b').then(function(response) {
+ *    console.log('Response: ', response);
+ * }).catch(function(error) {
+ *    if (error.reason === 'timeout') {
+ *      console.log('Task timed out.');
+ *    }
+ *    xhr.abort();
+ * });
+ * @param {number} milliseconds - Timeout period.
+ * @param {*} [reason] - Reason for rejecting the task's promise.
+ * @returns {boolean} - false if called while task is running, true otherwise.
+ */
+Task.prototype.timeout = function timeout(milliseconds, reason) {
+  if (typeof milliseconds !== 'number') {
+    throw new Error('Timeout milliseconds must be a number.');
+  }
+  if (typeof this._cancel !== 'function') {
+    this._timeout = function _timeout() {
+      return setTimeout(this.cancel.bind(this, reason), milliseconds);
+    };
     return true;
   }
   return false;

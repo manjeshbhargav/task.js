@@ -116,6 +116,65 @@ describe('Task', () => {
     });
   });
 
+  describe('#timeout', () => {
+    it('should throw if timeout milliseconds is not a number', () => {
+      var task = new Task('name', () => {});
+      assert.throws(task.timeout.bind(task, '1'));
+      assert.throws(task.timeout.bind(task, true));
+      assert.throws(task.timeout.bind(task, []));
+      assert.throws(task.timeout.bind(task, {}));
+    });
+
+    it('should return true if called before #do()', () => {
+      var task = new Task('name', () => {});
+      assert.equal(task.timeout(0), true);
+    });
+
+    it('should return false if called after #do() and before done()/failed()', () => {
+      var task = new Task('name', () => {});
+      task.do();
+      assert.equal(task.timeout(0), false);
+    });
+
+    it('should time out the Promise before done()', () => {
+      return new Promise((resolve, reject) => {
+        var task = new Task('name', done => { setTimeout(done, 100); });
+        task.timeout(0, 'timeout');
+        task.do().then(reject).catch(reason => {
+          assert.equal(reason, 'timeout');
+          resolve();
+        });
+      });
+    });
+
+    it('should time out the Promise before failed()', () => {
+      return new Promise((resolve, reject) => {
+        var task = new Task('name', (done, failed) => { setTimeout(failed, 100); });
+        task.timeout(0, 'timeout');
+        task.do().then(reject).catch(reason => {
+          assert.equal(reason, 'timeout');
+          resolve();
+        });
+      });
+    });
+
+    it('should time out the promise after the set period', () => {
+      return new Promise((resolve, reject) => {
+        var to = 500;
+        var task = new Task('name', (done, failed) => { setTimeout(failed, to << 1); });
+        task.timeout(to, 'timeout');
+
+        var start = new Date().getTime();
+        task.do().then(reject).catch(() => {
+          var end = new Date().getTime();
+          assert(Math.abs(end - start - to) < Math.floor(to / 10));
+          resolve();
+        });
+      });
+
+    });
+  });
+
   describe('.create', () => {
     it('should throw if name is not a string', () => {
       assert.throws(Task.create.bind(Task, {}, () => {}));
