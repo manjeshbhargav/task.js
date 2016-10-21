@@ -26,12 +26,17 @@
  */
 function Task(name, template) {
   Object.defineProperties(this, {
+    _cancel: {
+      value: null,
+      writable: true
+    },
     name: {
       value: name,
       enumerable: true
     },
     template: {
-      value: template
+      value: template,
+      enumerable: true
     }
   });
 }
@@ -330,14 +335,55 @@ Task.prototype.do = function doTask() {
   var self = this;
 
   return new Promise(function(resolve, reject) {
-    var ret = self.template.apply(null, args.concat([resolve, reject]));
+    var _resolve = function _resolve() {
+      self._cancel = null;
+      resolve.apply(this, arguments);
+    };
+    var _reject = function _reject() {
+      self._cancel = null;
+      reject.apply(this, arguments);
+    };
+    self._cancel = _reject;
+
+    var ret = self.template.apply(null, args.concat([_resolve, _reject]));
     if (typeof ret instanceof Promise) {
-      ret.then(resolve).catch(reject);
+      ret.then(_resolve).catch(_reject);
     }
     else if (typeof ret !== 'undefined') {
-      resolve(ret);
+      _resolve(ret);
     }
   });
+};
+
+/**
+ * Cancel a {@link Task} if it hasn't completed.
+ * @example
+ * var timeout = null;
+ * var task = Task.create('cancelable task', function(ms, done, failed) {
+ *    timeout = setTimeout(function() { failed('Timeout over!'); }, ms);
+ * });
+ *
+ * task.do(5000).then(function() {...}).catch(function(reason) {
+ *    if (reason === 'canceled') {
+ *      console.log('We are here because the task was actively canceled.');
+ *    }
+ *    else {
+ *      console.log('We are here because the task failed().');
+ *    }
+ *    clearTimeout(timeout);
+ *    timeout = null;
+ * });
+ *
+ * task.cancel('canceled');
+ * @param {*} [reason] - Reason for canceling task.
+ * @returns {boolean} - true if called while task is running, false if not.
+ */
+Task.prototype.cancel = function cancel(reason) {
+  if (typeof this._cancel === 'function') {
+    this._cancel(reason);
+    return true;
+  }
+  return false;
 };
 
 module.exports = Task;

@@ -74,6 +74,48 @@ describe('Task', () => {
     });
   });
 
+  describe('#cancel', () => {
+    it('should return false when called before #do()', () => {
+      var task = new Task('name', done => done());
+      assert.equal(task.cancel(), false);
+    });
+
+    it('should return false when called after done()', () => {
+      var task = new Task('name', done => done());
+      return task.do().then(() => {
+        assert.equal(task.cancel(), false);
+      })
+    });
+
+    it('should return false when called after failed()', () => {
+      return new Promise((resolve, reject) => {
+        var task = new Task('name', (done, failed) => failed());
+        task.do().then(reject).catch(() => {
+          assert.equal(task.cancel(), false);
+          resolve();
+        });
+      });
+    });
+
+    it('should return true when called after #do() but before completed', () => {
+      var task = new Task('name', () => {});
+      task.do();
+      assert.equal(task.cancel(), true);
+    });
+
+    it('should reject the Promise returned by #do()', () => {
+      return new Promise((resolve, reject) => {
+        var task = new Task('name', (done, failed) => { setTimeout(done); });
+        task.do().then(reject).catch(reason => {
+          assert.equal(reason, 'canceled');
+          assert.equal(task.cancel(), false);
+          resolve();
+        });
+        task.cancel('canceled');
+      });
+    });
+  });
+
   describe('.create', () => {
     it('should throw if name is not a string', () => {
       assert.throws(Task.create.bind(Task, {}, () => {}));

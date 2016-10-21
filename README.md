@@ -125,6 +125,31 @@ on to the `catch()` callback.
   });
   ```
 
+## Canceling a task
+
+Sometimes we need to cancel a task after starting it. We can do it like this:
+```javascript
+var timeout = null;
+var task = Task.create('cancelable task', function(ms, done, failed) {
+  timeout = setTimeout(function() { failed('Timeout over!'); }, ms);
+});
+
+task.do(5000).then(function() {...}).catch(function(reason) {
+  if (reason === 'canceled') {
+    console.log('We are here because the task was actively canceled.');
+  }
+  else {
+    console.log('We are here because the task failed().');
+  }
+  clearTimeout(timeout);
+  timeout = null;
+});
+
+task.cancel('canceled');
+```
+`Task#cancel()` accepts an optional argument that is passed on to the `Promise#catch()` callback. This helps us determine
+whether we are in `Promise#catch()` because of `failed()` or because of `Task#cancel()`.
+
 ## Executing tasks serially
 Sometimes we need to perform a set of tasks serially, where the next task depends on the result from the previous task.
 We can do it like this:
