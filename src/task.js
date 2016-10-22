@@ -145,7 +145,7 @@ Task.sequence = function sequence(name, tasks) {
   });
 
   return new Task(name, function() {
-    var args = [].slice.call(arguments).splice(0, arguments.length - 2);
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
     return (function next() {
       if (tasks.length) {
         var task = tasks.shift();
@@ -199,7 +199,7 @@ Task.parallel = function parallel(name, tasks) {
   });
 
   return new Task(name, function() {
-    var args = [].slice.call(arguments).splice(0, arguments.length - 2);
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
     args = args.map(function(taskArgs) {
       return Array.isArray(taskArgs) ? taskArgs : [taskArgs];
     });
@@ -234,7 +234,7 @@ Task.try = function tryTask(name, template) {
   }
 
   return new Task(name, function() {
-    var args = [].slice.call(arguments).splice(0, arguments.length - 2);
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
     var tries = args.pop();
     var task = new Task(name + ': trying once', template);
 
