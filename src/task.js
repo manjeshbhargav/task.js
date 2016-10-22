@@ -139,29 +139,25 @@ Task.sequence = function sequence(name, tasks) {
     if (task instanceof Task) {
       return task;
     }
-    else if (typeof task === 'function') {
+    if (typeof task === 'function') {
       return new Task('anonymous', task);
     }
-    else {
-      throw new Error('tasks Array item must either be a Task or a template.');
-    }
+    throw new Error('tasks Array item must either be a Task or a template.');
   });
 
   return new Task(name, function() {
     var args = [].slice.apply(arguments);
-    var failed = args.pop();
-    var done = args.pop();
+    args.splice(-2);
 
     var next = function next() {
       if (tasks.length) {
         var task = tasks.shift();
-        task.do.apply(task, arguments).then(next).catch(failed);
+        return task.do.apply(task, arguments).then(next);
       }
-      else {
-        done.apply(null, arguments);
-      }
+      return Promise.resolve.apply(Promise, arguments);
     };
-    next.apply(null, args);
+
+    return next.apply(null, args);
   });
 };
 
@@ -203,12 +199,10 @@ Task.parallel = function parallel(name, tasks) {
     if (task instanceof Task) {
       return task;
     }
-    else if (typeof task === 'function') {
+    if (typeof task === 'function') {
       return new Task('anonymous', task);
     }
-    else {
-      throw new Error('tasks Array item must either be a Task or a template.');
-    }
+    throw new Error('tasks Array item must either be a Task or a template.');
   });
 
   return new Task(name, function() {
@@ -251,8 +245,8 @@ Task.try = function tryTask(name, template) {
 
   return new Task(name, function() {
     var args = [].slice.call(arguments);
-    var failed = args.pop();
-    var done = args.pop();
+    args.splice(-2);
+
     var tries = args.pop();
     var task = new Task(name + ': trying once', template);
 
@@ -261,14 +255,12 @@ Task.try = function tryTask(name, template) {
         + 'be a number (number of tries).');
     }
 
-    (function tryOnce(error) {
+    return (function tryOnce(error) {
       if (tries > 0) {
         tries--;
-        task.do.apply(task, args).then(done).catch(tryOnce);
+        return task.do.apply(task, args).catch(tryOnce);
       }
-      else {
-        failed(error);
-      }
+      return Promise.reject(error);
     })();
   });
 };
