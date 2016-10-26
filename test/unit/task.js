@@ -400,4 +400,43 @@ describe('Task', () => {
       });
     });
   });
+
+  describe('.delay', () => {
+    it('should throw if the first argument is not a string', () => {
+      assert.throws(Task.delay.bind(Task));
+      assert.throws(Task.delay.bind(Task, 2));
+      assert.throws(Task.delay.bind(Task, {}, () => {}));
+    });
+
+    it('should throw if the second argument is not a template', () => {
+      assert.throws(Task.delay.bind(Task, 'delay'));
+      assert.throws(Task.delay.bind(Task, 'delay', 1));
+      assert.throws(Task.delay.bind(Task, 'delay', {}));
+    });
+
+    it('should return a Task', () => {
+      assert(Task.delay('delay', () => {}) instanceof Task);
+    });
+
+    it('should reject the promise if delay period is not a number', () => {
+      return new Promise((resolve, reject) => {
+        var task = Task.delay('delay', done => done());
+        return task.do('2').then(reject).catch(resolve);
+      });
+    });
+
+    it('should start executing the task after a given time', () => {
+      var start = new Date().getTime();
+      var delay = 500;
+
+      var task = Task.delay('delay', x => {
+        var end = new Date().getTime();
+        assert.equal(x, 5);
+        assert(end - start - delay < Math.floor(0.1 * delay));
+        return true;
+      });
+
+      return task.do(5, delay);
+    });
+  });
 });

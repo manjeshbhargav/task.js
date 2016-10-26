@@ -301,6 +301,50 @@ Task.map = function map(name, template) {
 };
 
 /**
+ * Execute a task after waiting some time.
+ * @example
+ * var delayedTask = Task.delay('check status after 5 seconds', function(url, done, failed) {
+ *    $.getJSON(url, done, failed);
+ * });
+ *
+ * // The last argument to Task#do() is the wait time in milliseconds.
+ * delayedTask.do('http://www.x.y.com/status/me', 5000).then(function(status) {
+ *    console.log('Status: ', status);
+ * }).catch(function(error) {
+ *    console.log('Failed to get status: ', error);
+ * });
+ * @param {string} name - Name of the task.
+ * @param {function} template - {@link Task} template.
+ * @returns {Task}
+ */
+Task.delay = function delay(name, template) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
+  }
+  if (typeof template !== 'function') {
+    throw new Error('Task template must be a function.');
+  }
+
+  return new Task(name, function() {
+    var args = [].slice.call(arguments);
+    var failed = args.pop();
+    var done = args.pop();
+    var delay = args.pop();
+
+    if (typeof delay !== 'number') {
+      throw new Error('Last argument for Task#do() must be a number '
+        + 'specifying the milliseconds to wait after which the task is to '
+        + 'be executed.');
+    }
+
+    setTimeout(function() {
+      var task = new Task(name + ': delayed', template);
+      task.do.apply(task, args).then(done).catch(failed);
+    }, delay);
+  });
+};
+
+/**
  * Perform a {@link Task}.
  * @example
  * var task = Task.create('task name', function(a, b, done, failed) {...});

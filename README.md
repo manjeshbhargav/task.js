@@ -282,3 +282,18 @@ getHtmlMap.do(['http://www.ex1.com', 'http://www.ex2.com']).then(function(htmls)
   console.log('Failed to get htmls - ', error);
 });
 ```
+
+# Delayed execution of a task
+Sometimes we want to execute a task after a certain period of time. We can do it like this:
+```javascript
+var delayedTask = Task.delay('check status after 5 seconds', function(url, done, failed) {
+  $.getJSON(url, done, failed);
+});
+
+// The last argument to Task#do() is the wait time in milliseconds.
+delayedTask.do('http://www.x.y.com/status/me', 5000).then(function(status) {
+  console.log('Status: ', status);
+}).catch(function(error) {
+  console.log('Failed to get status: ', error);
+});
+```
