@@ -125,16 +125,72 @@ on to the `catch()` callback.
   });
   ```
 
+## Canceling a task
+Sometimes we need to cancel a task after starting it. We can do it like this:
+```javascript
+var timeout = null;
+var task = Task.create('cancelable task', function(ms, done, failed) {
+  timeout = setTimeout(function() { failed('Timeout over!'); }, ms);
+});
+
+task.do(5000).then(function() {...}).catch(function(reason) {
+  if (reason === 'canceled') {
+    console.log('We are here because the task was actively canceled.');
+  }
+  else {
+    console.log('We are here because the task failed().');
+  }
+  clearTimeout(timeout);
+  timeout = null;
+});
+
+// The argument to cancel() is anything that we want to
+// pass to the Promise's catch() that helps us determine why it
+// was rejected.
+task.cancel('canceled');
+```
+
+## Timing out a task
+Sometimes we want to set a time limit for a task to complete (`done()` or `failed()`). We can do it like this:
+```javascript
+var xhr = new XMLHttpRequest();
+var getUrl = Task.create('get content of url', function(url, done, failed) {
+  xhr.open('GET', url, true);
+  xhr.onreadystatechange = function() {
+    if (xhr.status === 200 && xhr.readyState === 4) {
+      done(xhr.responseText);
+    }
+  };
+  xhr.send();
+});
+
+// The second argument to timeout() is anything that we want to
+// pass to the Promise's catch() that helps us determine why it
+// was rejected.
+getUrl.timeout(5000, { reason: 'timeout' });
+
+getUrl.do('http://www.x.y.com/?a=b').then(function(response) {
+  console.log('Response: ', response);
+}).catch(function(error) {
+  if (error.reason === 'timeout') {
+    console.log('Task timed out.');
+  }
+  xhr.abort();
+});
+```
+
 ## Executing tasks serially
 Sometimes we need to perform a set of tasks serially, where the next task depends on the result from the previous task.
 We can do it like this:
 ```javascript
-var task1 = Task.create('task1', function(a, b, done, failed) {...});
-var task2 = Task.create('task2', function(task1Result, done, failed) {...});
-var task3 = Task.create('task3', function(task2Result, done, failed) {...});
+var task1 = Task.create('task 1', function(task1Arg, done, failed) {...});
+var task2 = Task.create('task 2', function(task1Result, done, failed) {...});
+var task3 = Task.create('task 3', function(task2Result, done, failed) {...});
+var taskSequence = Task.sequence('sequence', [task1, task2, task3]);
 
-Task.sequence([task1, task2, task3], ...argsForTask1).then(function(task3Result) {
-  console.log('Result of task3 - ', task3Result);
+// The arguments of Task#do() are arguments for the first task in the sequence.
+taskSequence.do(10).then(function(task3Result) {
+  console.log('All done one after the other!');
 }).catch(function(error) {
   console.error('One of the tasks failed - ', error);
 });
@@ -143,16 +199,19 @@ Task.sequence([task1, task2, task3], ...argsForTask1).then(function(task3Result)
 ## Executing tasks in parallel
 Sometimes we need to wait for a set of independent tasks to be executed before we can proceed. We can do it like this:
 ```javascript
-var task1 = Task.create('task1', function(a, b, done, failed) {...});
-var task2 = Task.create('task2', function(d, e, f, done, failed) {...});
-var task3 = Task.create('task3', function(done, failed) {...});
+var task1 = Task.create('task1', function(arg1, done, failed) {...});
+var task2 = Task.create('task2', function(arg21, arg22, done, failed) {...});
+var task3 = Task.create('task3', function(arg31, done, failed) {...});
+var taskParallel = Task.parallel('parallel', [task1, task2, task3]);
 
-Task.parallel([
-  task1.do(1, 2),
-  task2.do('3', true, {}),
-  task3.do()
-]).then(function(taskResults) {
-  console.log('Results of all tasks - ', taskResults);
+// The arguments for Task#do() is (args1, args2, args3), where:
+// * args1 => Array of arguments for task1's template
+// * args2 => Array of arguments for task2's template
+// * args3 => Array of arguments for task3's template
+// NOTE: If there is only one argument for a task, then there is no
+//       need to enclose it in an array.
+taskParallel.do(1, ['2', true], {}).then(function(results) {
+  console.log('Results of all completed tasks - ', results);
 }).catch(function(error) {
   console.error('One of the tasks failed - ', error);
 });
@@ -180,7 +239,7 @@ Ex: If we lose our connection with the server, we would want to re-try connectin
 We can do it like this:
 ```javascript
 var numRetries = 10;
-var retryConnection = Task.create('retry connecting to server', function(request, done, failed) {
+var retryConnection = Task.try('retry connecting to server', function(request, done, failed) {
   request.connect('/server/connect', function(response) {
     if (response.connection) { done(response.connection); }
     else { failed(response.error); }
@@ -188,7 +247,7 @@ var retryConnection = Task.create('retry connecting to server', function(request
 });
 
 function retryConnect() {
-  Task.try(retryConnection, numRetries, new Request()).then(function(connection) {
+  retryConnection.do(new Request(), numRetries).then(function(connection) {
     console.log('Connected! - ', connection);
     connection.on('lost', retryConnect);
   }).catch(function(error) {
@@ -201,7 +260,7 @@ function retryConnect() {
 Sometimes we want to run a task on each item of an array, and once we have gotten all the results,
 act on them (like `Array.prototype.map()`, only async). We can do it like this:
 ```javascript
-var getContent = Task.create('get html content', function(url, done, failed) {
+var getHtmlMap = Task.map('get html of a given url', function(url, done, failed) {
   http.get(url, function(response) {
     var html = '';
     response.on('data', function(data) {
@@ -213,12 +272,28 @@ var getContent = Task.create('get html content', function(url, done, failed) {
   }).on('error', failed);
 });
 
-var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
-Task.map(domains, getContent).then(function(content) {
-  content.forEach(function(html, i) {
-    console.log('Content["' + domains[i] + '"]: ', html);
+// The argument for Task#do() is an array where the task has to be
+// performed once for each item in parallel.
+getHtmlMap.do(['http://www.ex1.com', 'http://www.ex2.com']).then(function(htmls) {
+  htmls.forEach(function(html, i) {
+    console.log('HTML["' + domains[i] + '"]: ', html);
   });
 }).catch(function(error) {
-  console.log('Failed to get content - ', error);
+  console.log('Failed to get htmls - ', error);
+});
+```
+
+# Delayed execution of a task
+Sometimes we want to execute a task after a certain period of time. We can do it like this:
+```javascript
+var delayedTask = Task.delay('check status after 5 seconds', function(url, done, failed) {
+  $.getJSON(url, done, failed);
+});
+
+// The last argument to Task#do() is the wait time in milliseconds.
+delayedTask.do('http://www.x.y.com/status/me', 5000).then(function(status) {
+  console.log('Status: ', status);
+}).catch(function(error) {
+  console.log('Failed to get status: ', error);
 });
 ```

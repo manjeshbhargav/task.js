@@ -1,7 +1,5 @@
 'use strict';
 
-var type = require('./type');
-
 /**
  * Create a new {@link Task}
  * @class
@@ -28,12 +26,21 @@ var type = require('./type');
  */
 function Task(name, template) {
   Object.defineProperties(this, {
+    _cancel: {
+      value: null,
+      writable: true
+    },
+    _timeout: {
+      value: null,
+      writable: true
+    },
     name: {
       value: name,
       enumerable: true
     },
     template: {
-      value: template
+      value: template,
+      enumerable: true
     }
   });
 }
@@ -61,11 +68,11 @@ function Task(name, template) {
  * @returns {Task}
  */
 Task.create = function create(name, template) {
-  if (!type(name).is('string')) {
-    throw(new Error('name must be a string'));
+  if (typeof name !== 'string') {
+    throw new Error('name must be a string');
   }
-  if (!type(template).is('function')) {
-    throw(new Error('template must be a function'));
+  if (typeof template !== 'function') {
+    throw new Error('template must be a function');
   }
   return new Task(name, template);
 };
@@ -88,11 +95,11 @@ Task.create = function create(name, template) {
  * @memberof Task
  * @param {Function} template - Function which has the instructions.
  * @param {...*} arguments - Arguments for running the template.
- * @returns {Promise.<*>}
+ * @returns {Promise}
  */
 Task.do = function doTask(template) {
-  if (!type(template).is('function')) {
-    throw(new Error('template must be a function'));
+  if (typeof template !== 'function') {
+    throw new Error('template must be a function');
   }
 
   var args = [].slice.call(arguments, 1);
@@ -103,35 +110,50 @@ Task.do = function doTask(template) {
 /**
  * Perform a sequence of {@link Task}s.
  * @example
- * var task1 = Task.create('task 1', function(done, failed) {...});
+ * var task1 = Task.create('task 1', function(task1Arg, done, failed) {...});
  * var task2 = Task.create('task 2', function(task1Result, done, failed) {...});
  * var task3 = Task.create('task 3', function(task2Result, done, failed) {...});
+ * var taskSequence = Task.sequence('sequence', [task1, task2, task3]);
  *
- * Task.sequence([task1, task2, task3]).then(function(task3Result) {
+ * // The arguments of Task#do() are arguments for the first task in the sequence.
+ * taskSequence.do(10).then(function(task3Result) {
  *    console.log('All done one after the other!');
  * }).catch(function(error) {
  *    console.error('One of the tasks failed - ', error);
  * });
  * @memberof Task
- * @param {Task[]} tasks - Tasks to be performed in sequence.
- * @param {...*} arguments - Arguments for the first task.
- * @returns {Promise.<*>}
+ * @param {string} name - Name of the task.
+ * @param {Task|function[]} tasks - Tasks/templates to be performed in sequence.
+ * @returns {Task}
  */
-Task.sequence = function sequence(tasks) {
-  if (!type(tasks).isArrayOf(Task)) {
-    throw(new Error('Argument should be an array of tasks.'));
+Task.sequence = function sequence(name, tasks) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
   }
-
-  var firstTaskArgs = [].slice.call(arguments, 1);
-  var next = function next() {
-    if (tasks.length) {
-      var task = tasks.shift();
-      return task.do.apply(task, arguments).then(next);
+  if (!Array.isArray(tasks)) {
+    throw new Error('The second argument should be an array '
+      + 'of Tasks/templates.');
+  }
+  tasks = tasks.map(function(task) {
+    if (task instanceof Task) {
+      return task;
     }
-    return Promise.resolve.apply(Promise, arguments);
-  };
+    if (typeof task === 'function') {
+      return new Task('anonymous', task);
+    }
+    throw new Error('tasks Array item must either be a Task or a template.');
+  });
 
-  return next.apply(null, firstTaskArgs);
+  return new Task(name, function() {
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
+    return (function next() {
+      if (tasks.length) {
+        var task = tasks.shift();
+        return task.do.apply(task, arguments).then(next);
+      }
+      return Promise.resolve.apply(Promise, arguments);
+    }).apply(null, args);
+  });
 };
 
 /**
@@ -139,85 +161,102 @@ Task.sequence = function sequence(tasks) {
  * @example
  * var task1 = Task.create('task1', function(arg1, done, failed) {...});
  * var task2 = Task.create('task2', function(arg21, arg22, done, failed) {...});
- * var task3 = Task.create('task3',, function(done, failed) {...});
+ * var task3 = Task.create('task3', function(arg31, done, failed) {...});
+ * var taskParallel = Task.parallel('parallel', [task1, task2, task3]);
  *
- * Task.parallel([
- *    task1.do(1),
- *    task2.do(true, 'foo'),
- *    task3.do()
- * ]).then(function(results) {
+ * // The arguments for Task#do() is (args1, args2, args3), where:
+ * // * args1 => Array of arguments for task1's template
+ * // * args2 => Array of arguments for task2's template
+ * // * args3 => Array of arguments for task3's template
+ * // NOTE: If there is only one argument for a task, then there is no
+ * //       need to enclose it in an array.
+ * taskParallel.do(1, ['2', true], {}).then(function(results) {
  *    console.log('Results of all completed tasks - ', results);
  * }).catch(function(error) {
  *    console.error('One of the tasks failed - ', error);
  * });
  * @memberof Task
- * @param {Promise[]} taskPromises - Promises returned by each {@link Task}'s <code>do()</code> method.
- * @returns {Promise.<*>}
+ * @param {string} name - Name of the task.
+ * @param {Task|function[]} tasks - Tasks/templates to be performed in parallel.
+ * @returns {Task}
  */
-Task.parallel = function parallel(taskPromises) {
-  if (!type(taskPromises).isArrayOf(Promise)) {
-    throw(new Error('Argument should be an array of task promises.'));
+Task.parallel = function parallel(name, tasks) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
   }
-  return Promise.all(taskPromises);
+  if (!Array.isArray(tasks)) {
+    throw new Error('The second argument should be an array '
+      + 'of Tasks/templates.');
+  }
+  tasks = tasks.map(function(task) {
+    if (task instanceof Task) {
+      return task;
+    }
+    if (typeof task === 'function') {
+      return new Task('anonymous', task);
+    }
+    throw new Error('tasks Array item must either be a Task or a template.');
+  });
+
+  return new Task(name, function() {
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
+    args = args.map(function(taskArgs) {
+      return Array.isArray(taskArgs) ? taskArgs : [taskArgs];
+    });
+    return Promise.all(tasks.map(function(task, i) {
+      return task.do.apply(task, args[i]);
+    }));
+  });
 };
 
 /**
  * Try to do a {@link Task} at most n times until done.
  * @example
- * <caption>Try with a {@link Task}</caption>
- * var task = Task.create('try', function(done, failed) {...});
- * Task.try(task, 10).then(function() {
- *    console.log('Successful before 10 tries!');
- * }).catch(function() {
- *    console.log('Failed even after 10 tries!');
- * });
+ * var task = Task.try('try', function(arg1, arg2, done, failed) {...});
  *
- * @example
- * <caption>Try with a template function</caption>
- * Task.try(function(done, failed) {...}, 10).then(function() {
+ * // The last argument for Task#do() is the number of tries.
+ * task.do(1, false, 10).then(function() {
  *    console.log('Successful before 10 tries!');
  * }).catch(function() {
  *    console.log('Failed even after 10 tries!');
  * });
  * @memberof Task
- * @param {Task|function} taskOrTemplate - {@link Task} or template function to be tried.
- * @param {Number} tries - Maximum number of tries.
- * @returns {Promise.<*>}
+ * @param {string} name - Name of the {@link Task}.
+ * @param {function} template - Task template.
+ * @returns {Task}
  */
-Task.try = function tryTask(taskOrTemplate, tries) {
-  var task = taskOrTemplate;
-
-  if (type(taskOrTemplate).is('function')) {
-    task = new Task('anonymous', taskOrTemplate);
+Task.try = function tryTask(name, template) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
   }
-  else if (!type(taskOrTemplate).isInstanceOf(Task)) {
-    throw(new Error('First argument should be a task or a template.'));
+  if (typeof template !== 'function') {
+    throw new Error('Task template must be a function.');
   }
 
-  if (!type(tries).is('number')) {
-    throw(new Error('Second argument should be the number of tries.'));
-  }
+  return new Task(name, function() {
+    var args = [].slice.call(arguments, 0, arguments.length - 2);
+    var tries = args.pop();
+    var task = new Task(name + ': trying once', template);
 
-  var taskArgs = [].slice.call(arguments, 2);
-  return Task.do(function(done, failed) {
-    var tryOnce = function tryOnce(error) {
+    if (typeof tries !== 'number') {
+      throw new Error('Last argument for Task#do() must '
+        + 'be a number (number of tries).');
+    }
+
+    return (function tryOnce(error) {
       if (tries > 0) {
         tries--;
-        task.do.apply(task, taskArgs).then(done).catch(tryOnce);
+        return task.do.apply(task, args).catch(tryOnce);
       }
-      else {
-        failed(error);
-      }
-    };
-    tryOnce();
+      return Promise.reject(error);
+    })();
   });
 };
 
 /**
  * Perform a task on an array of items.
  * @example
- * <caption>Map with a {@link Task}</caption>
- * var getContent = Task.create('get html content', function(url, done, failed) {
+ * var task = Task.map('get html of a given url', function(url, done, failed) {
  *    http.get(url, function(response) {
  *      var html = '';
  *      response.on('data', function(data) {
@@ -229,55 +268,80 @@ Task.try = function tryTask(taskOrTemplate, tries) {
  *    }).on('error', failed);
  * });
  *
- * var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
- * Task.map(domains, getContent).then(function(content) {
- *    content.forEach(function(html, i) {
- *      console.log('Content["' + domains[i] + '"]: ', html);
+ * // The argument for Task#do() is an array where the task has to be
+ * // performed once for each item in parallel.
+ * task.do(['http://www.ex1.com', 'http://www.ex2.com']).then(function(htmls) {
+ *    htmls.forEach(function(html, i) {
+ *      console.log('HTML["' + domains[i] + '"]: ', html);
  *    });
  * }).catch(function(error) {
- *    console.log('Failed to get content - ', error);
+ *    console.log('Failed to get htmls - ', error);
  * });
- *
- * @example
- * <caption>Map with a template function</caption>
- * var domains = ['http://www.ex1.com', 'http://www.ex2.com'];
- * Task.map(domains, function(url, done, failed) {
- *    http.get(url, function(response) {
- *      var html = '';
- *      response.on('data', function(data) {
- *        html += data;
- *      });
- *      response.on('end', function() {
- *        done(html);
- *      });
- *    }).on('error', failed);
- * }).then(function(content) {
- *    content.forEach(function(html, i) {
- *      console.log('Content["' + domains[i] + '"]: ', html);
- *    });
- * }).catch(function(error) {
- *    console.log('Failed to get content - ', error);
- * });
- * @param {any[]} array - Array of items on which a task has to be performed.
- * @param {Task|function} taskOrTemplate - {@link Task} to be performed or template function representing the task.
- * @returns {Promise.<*>}
+ * @param {string} name - Name of the task.
+ * @param {function} template - {@link Task} template.
+ * @returns {Task}
  */
-Task.map = function map(array, taskOrTemplate) {
-  if(!type(array).isArray()) {
-    throw(new Error('First argument must be an array'));
+Task.map = function map(name, template) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
+  }
+  if (typeof template !== 'function') {
+    throw new Error('Task template must be a function.');
   }
 
-  var task = taskOrTemplate;
-  if (type(taskOrTemplate).is('function')) {
-    task = new Task('anonymous', taskOrTemplate);
+  return new Task(name, function(array) {
+    if (!Array.isArray(array)) {
+      throw new Error('Argument to Task#do() must be an array.');
+    }
+    return Promise.all(array.map(function(item) {
+      var task = new Task(name + ': mapping once', template);
+      return task.do.call(task, item);
+    }));
+  });
+};
+
+/**
+ * Execute a task after waiting some time.
+ * @example
+ * var delayedTask = Task.delay('check status after 5 seconds', function(url, done, failed) {
+ *    $.getJSON(url, done, failed);
+ * });
+ *
+ * // The last argument to Task#do() is the wait time in milliseconds.
+ * delayedTask.do('http://www.x.y.com/status/me', 5000).then(function(status) {
+ *    console.log('Status: ', status);
+ * }).catch(function(error) {
+ *    console.log('Failed to get status: ', error);
+ * });
+ * @param {string} name - Name of the task.
+ * @param {function} template - {@link Task} template.
+ * @returns {Task}
+ */
+Task.delay = function delay(name, template) {
+  if (typeof name !== 'string') {
+    throw new Error('Task name must be a string.');
   }
-  else if(!type(taskOrTemplate).isInstanceOf(Task)) {
-    throw(new Error('Second argument must be a template function or a Task'));
+  if (typeof template !== 'function') {
+    throw new Error('Task template must be a function.');
   }
 
-  return Task.parallel(array.map(function(item) {
-    return task.do(item);
-  }));
+  return new Task(name, function() {
+    var args = [].slice.call(arguments);
+    var failed = args.pop();
+    var done = args.pop();
+    var delay = args.pop();
+
+    if (typeof delay !== 'number') {
+      throw new Error('Last argument for Task#do() must be a number '
+        + 'specifying the milliseconds to wait after which the task is to '
+        + 'be executed.');
+    }
+
+    setTimeout(function() {
+      var task = new Task(name + ': delayed', template);
+      task.do.apply(task, args).then(done).catch(failed);
+    }, delay);
+  });
 };
 
 /**
@@ -291,25 +355,115 @@ Task.map = function map(array, taskOrTemplate) {
  *    console.error('Task failed - ', error);
  * });
  * @param {...*} arguments - Arguments for the task template.
- * @returns {Promise.<*>}
+ * @returns {Promise}
  */
 Task.prototype.do = function doTask() {
   var args = [].slice.call(arguments);
   var self = this;
-  return new Promise(function execute(resolve, reject) {
-    try {
-      var ret = self.template.apply(null, args.concat([resolve, reject]));
-      if (type(ret).isInstanceOf(Promise)) {
-        Promise.resolve(ret).then(resolve).catch(reject);
+
+  return new Promise(function(resolve, reject) {
+    var timeout = typeof self._timeout === 'function'
+      ? self._timeout()
+      : null;
+    var _resolve = function _resolve() {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
       }
-      else if (!type(ret).is('undefined')) {
-        resolve(ret);
+      self._timeout = null;
+      self._cancel = null;
+      resolve.apply(this, arguments);
+    };
+    var _reject = function _reject() {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
       }
+      self._timeout = null;
+      self._cancel = null;
+      reject.apply(this, arguments);
+    };
+    self._cancel = _reject;
+
+    var ret = self.template.apply(null, args.concat([_resolve, _reject]));
+    if (ret instanceof Promise) {
+      ret.then(_resolve).catch(_reject);
     }
-    catch(e) {
-      reject(e);
+    else if (typeof ret !== 'undefined') {
+      _resolve(ret);
     }
   });
+};
+
+/**
+ * Cancel a {@link Task} if it hasn't completed.
+ * @example
+ * var timeout = null;
+ * var task = Task.create('cancelable task', function(ms, done, failed) {
+ *    timeout = setTimeout(function() { failed('Timeout over!'); }, ms);
+ * });
+ *
+ * task.do(5000).then(function() {...}).catch(function(reason) {
+ *    if (reason === 'canceled') {
+ *      console.log('We are here because the task was actively canceled.');
+ *    }
+ *    else {
+ *      console.log('We are here because the task failed().');
+ *    }
+ *    clearTimeout(timeout);
+ *    timeout = null;
+ * });
+ *
+ * task.cancel('canceled');
+ * @param {*} [reason] - Reason for canceling task.
+ * @returns {boolean} - true if called while task is running, false otherwise.
+ */
+Task.prototype.cancel = function cancel(reason) {
+  if (typeof this._cancel === 'function') {
+    this._cancel(reason);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Set the timeout period for the task.
+ * @example
+ * var xhr = new XMLHttpRequest();
+ * var getUrl = Task.create('get content of url', function(url, done, failed) {
+ *    xhr.open('GET', url, true);
+ *    xhr.onreadystatechange = function() {
+ *      if (xhr.status === 200 && xhr.readyState === 4) {
+ *        done(xhr.responseText);
+ *      }
+ *    };
+ *    xhr.send();
+ * });
+ *
+ * getUrl.timeout(5000, { reason: 'timeout' });
+ * getUrl.do('http://www.x.y.com/?a=b').then(function(response) {
+ *    console.log('Response: ', response);
+ * }).catch(function(error) {
+ *    if (error.reason === 'timeout') {
+ *      console.log('Task timed out.');
+ *    }
+ *    xhr.abort();
+ * });
+ * @param {number} milliseconds - Timeout period.
+ * @param {*} [reason] - Reason for rejecting the task's promise.
+ * @returns {boolean} - false if called while task is running, true otherwise.
+ */
+Task.prototype.timeout = function timeout(milliseconds, reason) {
+  if (typeof milliseconds !== 'number') {
+    throw new Error('Timeout milliseconds must be a number.');
+  }
+  if (typeof this._cancel !== 'function') {
+    this._timeout = function _timeout() {
+      return setTimeout(this.cancel.bind(this, reason), milliseconds);
+    };
+    return true;
+  }
+  return false;
 };
 
 module.exports = Task;
