@@ -170,17 +170,75 @@ on to the <code>catch()</code> callback.</p>
 </ul>
 
 <h2>
+<a id="canceling-a-task" class="anchor" href="#canceling-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Canceling a task</h2>
+
+<p>Sometimes we need to cancel a task after starting it. We can do it like this:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> timeout <span class="pl-k">=</span> <span class="pl-c1">null</span>;
+<span class="pl-k">var</span> task <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>cancelable task<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">ms</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+  timeout <span class="pl-k">=</span> <span class="pl-c1">setTimeout</span>(<span class="pl-k">function</span>() { <span class="pl-en">failed</span>(<span class="pl-s"><span class="pl-pds">'</span>Timeout over!<span class="pl-pds">'</span></span>); }, ms);
+});
+
+<span class="pl-smi">task</span>.<span class="pl-en">do</span>(<span class="pl-c1">5000</span>).<span class="pl-en">then</span>(<span class="pl-k">function</span>() {<span class="pl-k">...</span>}).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">reason</span>) {
+  <span class="pl-k">if</span> (reason <span class="pl-k">===</span> <span class="pl-s"><span class="pl-pds">'</span>canceled<span class="pl-pds">'</span></span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>We are here because the task was actively canceled.<span class="pl-pds">'</span></span>);
+  }
+  <span class="pl-k">else</span> {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>We are here because the task failed().<span class="pl-pds">'</span></span>);
+  }
+  <span class="pl-c1">clearTimeout</span>(timeout);
+  timeout <span class="pl-k">=</span> <span class="pl-c1">null</span>;
+});
+
+<span class="pl-c">// The argument to cancel() is anything that we want to</span>
+<span class="pl-c">// pass to the Promise's catch() that helps us determine why it</span>
+<span class="pl-c">// was rejected.</span>
+<span class="pl-smi">task</span>.<span class="pl-en">cancel</span>(<span class="pl-s"><span class="pl-pds">'</span>canceled<span class="pl-pds">'</span></span>);</pre></div>
+
+<h2>
+<a id="timing-out-a-task" class="anchor" href="#timing-out-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Timing out a task</h2>
+
+<p>Sometimes we want to set a time limit for a task to complete (<code>done()</code> or <code>failed()</code>). We can do it like this:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> xhr <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">XMLHttpRequest</span>();
+<span class="pl-k">var</span> getUrl <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>get content of url<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">url</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+  <span class="pl-smi">xhr</span>.<span class="pl-c1">open</span>(<span class="pl-s"><span class="pl-pds">'</span>GET<span class="pl-pds">'</span></span>, url, <span class="pl-c1">true</span>);
+  <span class="pl-smi">xhr</span>.<span class="pl-en">onreadystatechange</span> <span class="pl-k">=</span> <span class="pl-k">function</span>() {
+    <span class="pl-k">if</span> (<span class="pl-smi">xhr</span>.<span class="pl-c1">status</span> <span class="pl-k">===</span> <span class="pl-c1">200</span> <span class="pl-k">&amp;&amp;</span> <span class="pl-smi">xhr</span>.<span class="pl-c1">readyState</span> <span class="pl-k">===</span> <span class="pl-c1">4</span>) {
+      <span class="pl-en">done</span>(<span class="pl-smi">xhr</span>.<span class="pl-c1">responseText</span>);
+    }
+  };
+  <span class="pl-smi">xhr</span>.<span class="pl-c1">send</span>();
+});
+
+<span class="pl-c">// The second argument to timeout() is anything that we want to</span>
+<span class="pl-c">// pass to the Promise's catch() that helps us determine why it</span>
+<span class="pl-c">// was rejected.</span>
+<span class="pl-smi">getUrl</span>.<span class="pl-en">timeout</span>(<span class="pl-c1">5000</span>, { reason<span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>timeout<span class="pl-pds">'</span></span> });
+
+<span class="pl-smi">getUrl</span>.<span class="pl-en">do</span>(<span class="pl-s"><span class="pl-pds">'</span>http://www.x.y.com/?a=b<span class="pl-pds">'</span></span>).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">response</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Response: <span class="pl-pds">'</span></span>, response);
+}).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-k">if</span> (<span class="pl-smi">error</span>.<span class="pl-smi">reason</span> <span class="pl-k">===</span> <span class="pl-s"><span class="pl-pds">'</span>timeout<span class="pl-pds">'</span></span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Task timed out.<span class="pl-pds">'</span></span>);
+  }
+  <span class="pl-smi">xhr</span>.<span class="pl-c1">abort</span>();
+});</pre></div>
+
+<h2>
 <a id="executing-tasks-serially" class="anchor" href="#executing-tasks-serially" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Executing tasks serially</h2>
 
 <p>Sometimes we need to perform a set of tasks serially, where the next task depends on the result from the previous task.
 We can do it like this:</p>
 
-<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> task1 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task1<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">a</span>, <span class="pl-smi">b</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
-<span class="pl-k">var</span> task2 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task2<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">task1Result</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
-<span class="pl-k">var</span> task3 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task3<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">task2Result</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> task1 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task 1<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">task1Arg</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> task2 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task 2<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">task1Result</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> task3 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task 3<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">task2Result</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> taskSequence <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">sequence</span>(<span class="pl-s"><span class="pl-pds">'</span>sequence<span class="pl-pds">'</span></span>, [task1, task2, task3]);
 
-<span class="pl-smi">Task</span>.<span class="pl-en">sequence</span>([task1, task2, task3], <span class="pl-k">...</span>argsForTask1).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">task3Result</span>) {
-  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Result of task3 - <span class="pl-pds">'</span></span>, task3Result);
+<span class="pl-c">// The arguments of Task#do() are arguments for the first task in the sequence.</span>
+<span class="pl-smi">taskSequence</span>.<span class="pl-en">do</span>(<span class="pl-c1">10</span>).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">task3Result</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>All done one after the other!<span class="pl-pds">'</span></span>);
 }).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
   <span class="pl-en">console</span>.<span class="pl-c1">error</span>(<span class="pl-s"><span class="pl-pds">'</span>One of the tasks failed - <span class="pl-pds">'</span></span>, error);
 });</pre></div>
@@ -190,16 +248,19 @@ We can do it like this:</p>
 
 <p>Sometimes we need to wait for a set of independent tasks to be executed before we can proceed. We can do it like this:</p>
 
-<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> task1 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task1<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">a</span>, <span class="pl-smi">b</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
-<span class="pl-k">var</span> task2 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task2<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">d</span>, <span class="pl-smi">e</span>, <span class="pl-smi">f</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
-<span class="pl-k">var</span> task3 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task3<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> task1 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task1<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">arg1</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> task2 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task2<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">arg21</span>, <span class="pl-smi">arg22</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> task3 <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>task3<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">arg31</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {<span class="pl-k">...</span>});
+<span class="pl-k">var</span> taskParallel <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">parallel</span>(<span class="pl-s"><span class="pl-pds">'</span>parallel<span class="pl-pds">'</span></span>, [task1, task2, task3]);
 
-<span class="pl-smi">Task</span>.<span class="pl-en">parallel</span>([
-  <span class="pl-smi">task1</span>.<span class="pl-en">do</span>(<span class="pl-c1">1</span>, <span class="pl-c1">2</span>),
-  <span class="pl-smi">task2</span>.<span class="pl-en">do</span>(<span class="pl-s"><span class="pl-pds">'</span>3<span class="pl-pds">'</span></span>, <span class="pl-c1">true</span>, {}),
-  <span class="pl-smi">task3</span>.<span class="pl-en">do</span>()
-]).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">taskResults</span>) {
-  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Results of all tasks - <span class="pl-pds">'</span></span>, taskResults);
+<span class="pl-c">// The arguments for Task#do() is (args1, args2, args3), where:</span>
+<span class="pl-c">// * args1 =&gt; Array of arguments for task1's template</span>
+<span class="pl-c">// * args2 =&gt; Array of arguments for task2's template</span>
+<span class="pl-c">// * args3 =&gt; Array of arguments for task3's template</span>
+<span class="pl-c">// NOTE: If there is only one argument for a task, then there is no</span>
+<span class="pl-c">//       need to enclose it in an array.</span>
+<span class="pl-smi">taskParallel</span>.<span class="pl-en">do</span>(<span class="pl-c1">1</span>, [<span class="pl-s"><span class="pl-pds">'</span>2<span class="pl-pds">'</span></span>, <span class="pl-c1">true</span>], {}).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">results</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Results of all completed tasks - <span class="pl-pds">'</span></span>, results);
 }).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
   <span class="pl-en">console</span>.<span class="pl-c1">error</span>(<span class="pl-s"><span class="pl-pds">'</span>One of the tasks failed - <span class="pl-pds">'</span></span>, error);
 });</pre></div>
@@ -229,7 +290,7 @@ Ex: If we lose our connection with the server, we would want to re-try connectin
 We can do it like this:</p>
 
 <div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> numRetries <span class="pl-k">=</span> <span class="pl-c1">10</span>;
-<span class="pl-k">var</span> retryConnection <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>retry connecting to server<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">request</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+<span class="pl-k">var</span> retryConnection <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">try</span>(<span class="pl-s"><span class="pl-pds">'</span>retry connecting to server<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">request</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
   <span class="pl-smi">request</span>.<span class="pl-en">connect</span>(<span class="pl-s"><span class="pl-pds">'</span>/server/connect<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">response</span>) {
     <span class="pl-k">if</span> (<span class="pl-smi">response</span>.<span class="pl-smi">connection</span>) { <span class="pl-en">done</span>(<span class="pl-smi">response</span>.<span class="pl-smi">connection</span>); }
     <span class="pl-k">else</span> { <span class="pl-en">failed</span>(<span class="pl-smi">response</span>.<span class="pl-smi">error</span>); }
@@ -237,7 +298,7 @@ We can do it like this:</p>
 });
 
 <span class="pl-k">function</span> <span class="pl-en">retryConnect</span>() {
-  <span class="pl-smi">Task</span>.<span class="pl-en">try</span>(retryConnection, numRetries, <span class="pl-k">new</span> <span class="pl-en">Request</span>()).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">connection</span>) {
+  <span class="pl-smi">retryConnection</span>.<span class="pl-en">do</span>(<span class="pl-k">new</span> <span class="pl-en">Request</span>(), numRetries).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">connection</span>) {
     <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Connected! - <span class="pl-pds">'</span></span>, connection);
     <span class="pl-smi">connection</span>.<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>lost<span class="pl-pds">'</span></span>, retryConnect);
   }).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
@@ -251,7 +312,7 @@ We can do it like this:</p>
 <p>Sometimes we want to run a task on each item of an array, and once we have gotten all the results,
 act on them (like <code>Array.prototype.map()</code>, only async). We can do it like this:</p>
 
-<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> getContent <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">create</span>(<span class="pl-s"><span class="pl-pds">'</span>get html content<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">url</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> getHtmlMap <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">map</span>(<span class="pl-s"><span class="pl-pds">'</span>get html of a given url<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">url</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
   <span class="pl-smi">http</span>.<span class="pl-c1">get</span>(url, <span class="pl-k">function</span>(<span class="pl-smi">response</span>) {
     <span class="pl-k">var</span> html <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span><span class="pl-pds">'</span></span>;
     <span class="pl-smi">response</span>.<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>data<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">data</span>) {
@@ -263,13 +324,30 @@ act on them (like <code>Array.prototype.map()</code>, only async). We can do it 
   }).<span class="pl-en">on</span>(<span class="pl-s"><span class="pl-pds">'</span>error<span class="pl-pds">'</span></span>, failed);
 });
 
-<span class="pl-k">var</span> domains <span class="pl-k">=</span> [<span class="pl-s"><span class="pl-pds">'</span>http://www.ex1.com<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>http://www.ex2.com<span class="pl-pds">'</span></span>];
-<span class="pl-smi">Task</span>.<span class="pl-en">map</span>(domains, getContent).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">content</span>) {
-  <span class="pl-smi">content</span>.<span class="pl-c1">forEach</span>(<span class="pl-k">function</span>(<span class="pl-smi">html</span>, <span class="pl-smi">i</span>) {
-    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Content["<span class="pl-pds">'</span></span> <span class="pl-k">+</span> domains[i] <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">'</span>"]: <span class="pl-pds">'</span></span>, html);
+<span class="pl-c">// The argument for Task#do() is an array where the task has to be</span>
+<span class="pl-c">// performed once for each item in parallel.</span>
+<span class="pl-smi">getHtmlMap</span>.<span class="pl-en">do</span>([<span class="pl-s"><span class="pl-pds">'</span>http://www.ex1.com<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>http://www.ex2.com<span class="pl-pds">'</span></span>]).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">htmls</span>) {
+  <span class="pl-smi">htmls</span>.<span class="pl-c1">forEach</span>(<span class="pl-k">function</span>(<span class="pl-smi">html</span>, <span class="pl-smi">i</span>) {
+    <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>HTML["<span class="pl-pds">'</span></span> <span class="pl-k">+</span> domains[i] <span class="pl-k">+</span> <span class="pl-s"><span class="pl-pds">'</span>"]: <span class="pl-pds">'</span></span>, html);
   });
 }).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
-  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Failed to get content - <span class="pl-pds">'</span></span>, error);
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Failed to get htmls - <span class="pl-pds">'</span></span>, error);
+});</pre></div>
+
+<h1>
+<a id="delayed-execution-of-a-task" class="anchor" href="#delayed-execution-of-a-task" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Delayed execution of a task</h1>
+
+<p>Sometimes we want to execute a task after a certain period of time. We can do it like this:</p>
+
+<div class="highlight highlight-source-js"><pre><span class="pl-k">var</span> delayedTask <span class="pl-k">=</span> <span class="pl-smi">Task</span>.<span class="pl-en">delay</span>(<span class="pl-s"><span class="pl-pds">'</span>check status after 5 seconds<span class="pl-pds">'</span></span>, <span class="pl-k">function</span>(<span class="pl-smi">url</span>, <span class="pl-smi">done</span>, <span class="pl-smi">failed</span>) {
+  <span class="pl-smi">$</span>.<span class="pl-en">getJSON</span>(url, done, failed);
+});
+
+<span class="pl-c">// The last argument to Task#do() is the wait time in milliseconds.</span>
+<span class="pl-smi">delayedTask</span>.<span class="pl-en">do</span>(<span class="pl-s"><span class="pl-pds">'</span>http://www.x.y.com/status/me<span class="pl-pds">'</span></span>, <span class="pl-c1">5000</span>).<span class="pl-en">then</span>(<span class="pl-k">function</span>(<span class="pl-smi">status</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Status: <span class="pl-pds">'</span></span>, status);
+}).<span class="pl-en">catch</span>(<span class="pl-k">function</span>(<span class="pl-smi">error</span>) {
+  <span class="pl-en">console</span>.<span class="pl-c1">log</span>(<span class="pl-s"><span class="pl-pds">'</span>Failed to get status: <span class="pl-pds">'</span></span>, error);
 });</pre></div>
 
       <footer class="site-footer">
