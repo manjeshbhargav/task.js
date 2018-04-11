@@ -4,8 +4,7 @@
   "travis": false,
   "slug": "manjeshbhargav/task.js",
   "env": {
-    "GH_REF": "github.com/manjeshbhargav/task.js.git",
-    "GH_TOKEN": "a9fd6cc0de6ca9a6da2f6a4a344cbc5c8d19920e"
+    "GH_REF": "github.com/manjeshbhargav/task.js.git"
   },
   "plans": {
     "release": {
