@@ -35,7 +35,7 @@
       "commands": [
         "git checkout ${RELEASE_VERSION}",
         "npm pack",
-        "GH_REF=${GH_REF} GH_TOKEN=${GH_TOKEN} GIT_USER_NAME=${GIT_USER_NAME} ./git-release --tag ${RELEASE_VERSION} --asset lib-task-${RELEASE_VERSION}.tgz",
+        "./git-release --tag ${RELEASE_VERSION} --asset lib-task-${RELEASE_VERSION}.tgz",
         "git checkout ${BRANCH}"
       ]
     }

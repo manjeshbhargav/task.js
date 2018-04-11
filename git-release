@@ -15,23 +15,14 @@ function parseCli(cli, options, argv) {
 }
 
 parseCli(cli, [
-  ['-a --asset', 'Release asset'],
-  ['-t --tag', 'Release tag']
+  ['-a --asset <asset>', 'Release asset'],
+  ['-t --tag <tag>', 'Release tag']
 ], process.argv);
 
-console.log('Options:');
-console.log('Tag:', cli.tag);
-console.log('Asset:', cli.asset);
-
-const {
-  GH_REF,
-  GH_TOKEN,
-  GIT_USER_NAME
-} = process.env;
-console.log(process.env);
-
+const { GH_REF, GH_TOKEN, GIT_USER_NAME } = process.env;
 const github = new GitHub({ token: GH_TOKEN });
-const repo = github.getRepo(GIT_USER_NAME, GH_REF.split('/').pop());
+const name = GH_REF.split('/').pop().replace(/.git/, '');
+const repo = github.getRepo(GIT_USER_NAME, name);
 
 repo.createRelease({
   name: cli.tag,
@@ -40,8 +31,11 @@ repo.createRelease({
 }, (error, result, request) => {
   if (error) {
     console.error(`Error: ${error}`);
+    process.exit(1);
     return;
   }
-  console.log(`Result: ${result}`);
-  console.log(`Request: ${request}`);
+  process.exit();
+}).catch(error => {
+  console.error(`Error: ${error}`);
+  process.exit(1);
 });
