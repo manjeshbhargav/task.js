@@ -1,0 +1,42 @@
+
+{
+  "type": "JavaScript",
+  "travis": false,
+  "slug": "manjeshbhargav/task.js",
+  "env": {
+    "GH_REF": "github.com/manjeshbhargav/task.js.git",
+    "GH_TOKEN": "a9fd6cc0de6ca9a6da2f6a4a344cbc5c8d19920e"
+  },
+  "plans": {
+    "release": {
+      "env": {
+        "GIT_USER_NAME": "manjeshbhargav",
+        "GIT_USER_EMAIL": "manjesh.github@gmail.com"
+      },
+      "commands": [
+        "./node_modules/.bin/release --bump ${CURRENT_VERSION} ${RELEASE_VERSION}",
+        "git config user.name \"${GIT_USER_NAME}\"",
+        "git config user.email \"${GIT_USER_EMAIL}\"",
+        "git commit -m \"${RELEASE_VERSION}\"",
+        "git tag ${RELEASE_VERSION}",
+        "git remote set-url origin \"https://${GH_TOKEN}@${GH_REF}\"",
+        "git rebase HEAD ${BRANCH}",
+        "git push origin ${BRANCH} --tags"
+      ]
+    },
+    "development": {
+      "commands": [
+        "./node_modules/.bin/release --bump ${RELEASE_VERSION} ${DEVELOPMENT_VERSION}",
+        "git commit -m \"${DEVELOPMENT_VERSION}\"",
+        "git push origin ${BRANCH}"
+      ]
+    },
+    "publish": {
+      "commands": [
+        "git checkout ${RELEASE_VERSION}",
+        "npm run build",
+        "npm pack"
+      ]
+    }
+  }
+}
