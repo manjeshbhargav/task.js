@@ -35,8 +35,8 @@
     "publish": {
       "commands": [
         "git checkout ${RELEASE_VERSION}",
-        "npm run build",
-        "npm pack"
+        "npm pack",
+        "git checkout ${BRANCH}"
       ]
     }
   }
