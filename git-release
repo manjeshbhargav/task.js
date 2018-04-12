@@ -24,7 +24,7 @@ function parseCli(cli, options, argv) {
 function uploadAsset(url, asset) {
   const command = ['curl',
     `-H "Authorization: token ${GH_TOKEN}"`,
-    `-H "Content-Type: $(file -b --mime-type ${asset})`,
+    `-H "Content-Type: $(file -b --mime-type ${asset})"`,
     `--data-binary ${asset}`,
     `"${url}/?name=${asset}"`
   ].join(' ');
@@ -50,8 +50,7 @@ const repo = github.getRepo(GIT_USER_NAME, name);
 repo.createRelease({
   name: cli.tag,
   prerelease: isPrerelease(version),
-  tag_name: cli.tag,
-  target_commitish: cli.tag
+  tag_name: cli.tag
 }, (error, result, request) => {
   if (error) {
     console.error(`Error: ${error}`);
