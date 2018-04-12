@@ -23,8 +23,9 @@ function parseCli(cli, options, argv) {
 
 function uploadAsset(url, asset) {
   const command = ['curl',
+    `-X POST`,
     `-H "Authorization: token ${GH_TOKEN}"`,
-    `-H "Content-Type: application/octet-stream"`,
+    `-H "Content-Type: application/gzip"`,
     `--data-binary ${asset}`,
     `"${url}?name=${asset}"`
   ].join(' ');
