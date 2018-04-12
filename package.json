@@ -1,6 +1,6 @@
 {
   "name": "lib-task",
-  "version": "2.0.2-rc2",
+  "version": "2.0.2-dev",
   "description": "JavaScript library for building and running tasks.",
   "main": "index.js",
   "directories": {
