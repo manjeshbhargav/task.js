@@ -1,9 +1,16 @@
 #!/usr/bin/env node
 
+const { exec } = require('child_process');
 const cli = require('commander');
 const GitHub = require('github-api');
 const { prerelease } = require('semver');
 const { version } = require('./package');
+
+const EXIT_CODES = {
+  REQUEST_ERROR: 1,
+  RESPONSE_ERROR: 2,
+  UPLOAD_ERROR: 3
+};
 
 function isPrerelease(version) {
   return !!prerelease(version);
@@ -12,6 +19,22 @@ function isPrerelease(version) {
 function parseCli(cli, options, argv) {
   options.forEach(option => cli.option(option[0], option[1]));
   cli.parse(argv);
+}
+
+function uploadAsset(url, asset) {
+  const command = ['curl',
+    `-H "Authorization: token ${GH_TOKEN}"`,
+    `-H "Content-Type: $(file -b --mime-type ${asset})`,
+    `--data-binary ${asset}`,
+    `"${url}/?name=${asset}"`
+  ].join(' ');
+
+  exec(command, error => {
+    if (error) {
+      console.error(`Error: ${error}`);
+      process.exit(EXIT_CODES.UPLOAD_ERROR);
+    }
+  });
 }
 
 parseCli(cli, [
@@ -27,15 +50,17 @@ const repo = github.getRepo(GIT_USER_NAME, name);
 repo.createRelease({
   name: cli.tag,
   prerelease: isPrerelease(version),
-  tag_name: cli.tag
+  tag_name: cli.tag,
+  target_commitish: cli.tag
 }, (error, result, request) => {
   if (error) {
     console.error(`Error: ${error}`);
-    process.exit(1);
+    process.exit(EXIT_CODES.RESPONSE_ERROR);
     return;
   }
-  process.exit();
+  const { upload_url } = result;
+  uploadAsset(upload_url.replace(/{.*$/, ''), cli.asset);
 }).catch(error => {
   console.error(`Error: ${error}`);
-  process.exit(1);
+  process.exit(EXIT_CODES.REQUEST_ERROR);
 });

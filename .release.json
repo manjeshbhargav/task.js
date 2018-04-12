@@ -36,6 +36,7 @@
         "git checkout ${RELEASE_VERSION}",
         "npm pack",
         "./git-release --tag ${RELEASE_VERSION} --asset lib-task-${RELEASE_VERSION}.tgz",
+        "rm -f lib-task-${RELEASE_VERSION}.tgz",
         "git checkout ${BRANCH}"
       ]
     }
