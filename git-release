@@ -26,7 +26,7 @@ function uploadAsset(url, asset) {
     `-H "Authorization: token ${GH_TOKEN}"`,
     `-H "Content-Type: $(file -b --mime-type ${asset})"`,
     `--data-binary ${asset}`,
-    `"${url}/?name=${asset}"`
+    `"${url}?name=${asset}"`
   ].join(' ');
 
   exec(command, error => {
